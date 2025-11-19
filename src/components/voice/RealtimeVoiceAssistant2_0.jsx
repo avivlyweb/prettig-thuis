@@ -1,9 +1,8 @@
-
-import { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Mic, MicOff, Volume2, MessageSquare, Heart, RefreshCw, CheckCircle, Loader } from 'lucide-react';
-import { CareEventBackend } from '../services/voiceAssistant.js';
+import { Mic, MicOff, Volume2, MessageSquare, Heart, RefreshCw, CheckCircle, Clock, Loader } from 'lucide-react';
+import { CareEventBackend } from '../services/voiceAssistant';
 import { createOpenAISession } from "@/functions/createOpenAISession";
 import { User } from "@/entities/User";
 
