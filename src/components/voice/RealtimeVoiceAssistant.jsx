@@ -1,9 +1,10 @@
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Mic, MicOff, Volume2, MessageSquare, Settings } from 'lucide-react';
+import { Mic, MicOff, Volume2 } from 'lucide-react';
 import { CareEventBackend } from '../services/voiceAssistant';
 import { createOpenAISession } from "@/functions/createOpenAISession";
+import { analyzeConversationForICF } from "@/functions/analyzeConversationForICF";
 
 
 export default function RealtimeVoiceAssistant() {
@@ -12,16 +13,81 @@ export default function RealtimeVoiceAssistant() {
   const [isSessionActive, setIsSessionActive] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [currentResponse, setCurrentResponse] = useState("");
+  const [, setLastDetectedIcfCodes] = useState([]);
   
   const peerConnection = useRef(null);
   const dataChannel = useRef(null);
   const micStream = useRef(null);
   const audioPlayer = useRef(null);
   const careEventBackend = useRef(new CareEventBackend());
+  const lastProcessedUserInput = useRef("");
 
   const log = (msg) => {
     console.log("[RealtimeVoice]", msg);
     setStatus(msg);
+  };
+
+  const extractUserText = (data) => {
+    if (data?.transcript) return data.transcript;
+    if (data?.item?.role !== "user") return "";
+    const content = Array.isArray(data.item?.content) ? data.item.content : [];
+    for (const block of content) {
+      if (typeof block?.text === "string" && block.text.trim()) return block.text;
+      if (typeof block?.transcript === "string" && block.transcript.trim()) return block.transcript;
+    }
+    return "";
+  };
+
+  const detectAndLogUserSpeech = async (userText) => {
+    if (!userText || !userText.trim()) return;
+    const normalizedText = userText.trim();
+    if (lastProcessedUserInput.current === normalizedText) return;
+    lastProcessedUserInput.current = normalizedText;
+
+    let icfCodes = [];
+    let confidence = 0.5;
+    let reasons = [];
+
+    try {
+      const response = await analyzeConversationForICF({
+        conversationText: `Patiënt: ${userText}`,
+        recentTranscript: `Patiënt: ${userText}`,
+      });
+
+      const detected = response?.data?.detected_codes || [];
+      icfCodes = detected
+        .filter((item) => typeof item?.confidence === "number" ? item.confidence >= 0.6 : true)
+        .map((item) => item.code)
+        .filter(Boolean);
+      reasons = detected
+        .filter((item) => item?.reason)
+        .slice(0, 3)
+        .map((item) => item.reason);
+
+      const confidenceValues = detected
+        .map((item) => item?.confidence)
+        .filter((value) => typeof value === "number");
+      if (confidenceValues.length > 0) {
+        confidence = confidenceValues.reduce((acc, value) => acc + value, 0) / confidenceValues.length;
+      }
+    } catch (error) {
+      console.warn("ICF detection failed for realtime voice input:", error);
+    }
+
+    setLastDetectedIcfCodes(icfCodes);
+
+    await careEventBackend.current.postEvent("realtime_user", {
+      type: "checkin",
+      icf_tags: icfCodes,
+      confidence,
+      data: {
+        source: "voice_home",
+        speaker: "user",
+        user_text: normalizedText,
+        icf_reasons: reasons,
+        timestamp: new Date().toISOString(),
+      },
+    });
   };
   
   // Cleanup on component unmount
@@ -72,19 +138,24 @@ export default function RealtimeVoiceAssistant() {
           if (data.transcript) {
             setCaptions(data.transcript);
             setCurrentResponse("");
-            // Log this as a care event
-            careEventBackend.current.postEvent("realtime_user", {
-              type: "checkin",
-              icf_tags: ["b144", "d350"],
-              confidence: 0.8,
-              data: {
-                interaction_type: "voice_conversation",
-                response_text: data.transcript,
-                timestamp: new Date().toISOString()
-              }
-            });
           }
           break;
+
+        case 'conversation.item.input_audio_transcription.completed': {
+          const userText = extractUserText(data);
+          if (userText) {
+            detectAndLogUserSpeech(userText);
+          }
+          break;
+        }
+
+        case 'conversation.item.created': {
+          const userText = extractUserText(data);
+          if (userText) {
+            detectAndLogUserSpeech(userText);
+          }
+          break;
+        }
           
         case 'response.done':
           log("✅ Klaar om weer te luisteren");

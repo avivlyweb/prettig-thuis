@@ -50,24 +50,25 @@ export default function RealtimeICFInterviewer() {
 
   // Real-time ICF Analysis Function
   const analyzeConversationLive = useCallback(async () => {
-    if (conversationTranscript.length < 2) return; // Need at least 2 exchanges for meaningful analysis
+    const patientTurns = conversationTranscript.filter((t) => t.speaker === "Patiënt");
+    if (patientTurns.length < 2) return; // Need at least 2 patient utterances for meaningful analysis
     if (isAnalyzing) return; // Already analyzing
     
     // Only analyze if there's new content to avoid redundant API calls
-    if (conversationTranscript.length === lastAnalysisTranscriptLength) return;
+    if (patientTurns.length === lastAnalysisTranscriptLength) return;
     
     setIsAnalyzing(true);
     console.log("🧠 Analyzing conversation for ICF codes...");
     
     try {
       // Pass the full conversation history for broader context
-      const conversationText = conversationTranscript
+      const conversationText = patientTurns
         .map(t => `${t.speaker}: ${t.text}`)
         .join('\n');
       
-      // Pass recent exchanges for specific context around new additions
-      const recentTranscript = conversationTranscript
-        .slice(Math.max(0, conversationTranscript.length - 4)) // Last 4 exchanges for context
+      // Pass recent patient utterances for context around new additions
+      const recentTranscript = patientTurns
+        .slice(Math.max(0, patientTurns.length - 4))
         .map(t => `${t.speaker}: ${t.text}`)
         .join('\n');
       
@@ -87,7 +88,7 @@ export default function RealtimeICFInterviewer() {
           return updated;
         });
         
-        setLastAnalysisTranscriptLength(conversationTranscript.length); // Update the last analyzed length
+        setLastAnalysisTranscriptLength(patientTurns.length); // Update the last analyzed length
       }
     } catch (error) {
       console.error("❌ Error analyzing conversation:", error);
@@ -511,7 +512,7 @@ Reageer in het Nederlands, gebruik professionele taal met evidence-based inzicht
             } else {
               try {
                 errorMessage = JSON.stringify(data.error);
-              } catch (e) {
+              } catch {
                 errorMessage = 'Complex error object';
               }
             }

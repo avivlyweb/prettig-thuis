@@ -6,6 +6,7 @@ import QuestRevealCard2_0 from "../components/compass/QuestRevealCard2_0";
 import { Button } from "@/components/ui/button";
 import { RotateCcw, Sparkles } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
+import { saveCareEvent } from "@/lib/careEvents";
 
 const WEDGES = [
   { key: "morning", label: "Ochtend", color: "#F59E0B" },
@@ -182,18 +183,11 @@ export default function Routines2_0Page() {
         }
       };
 
-      const events = JSON.parse(localStorage.getItem('care_events') || '[]');
-      events.push({
+      await saveCareEvent({
         user_id: user?.id || "demo_user",
         ...questStartEvent,
-        timestamp: new Date().toISOString()
+        source: "routines_2_0",
       });
-      
-      if (events.length > 100) {
-        events.splice(0, events.length - 100);
-      }
-      
-      localStorage.setItem('care_events', JSON.stringify(events));
       
       console.log("✅ Quest start logged for caregiver dashboard:", questStartEvent);
       

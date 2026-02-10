@@ -1,4 +1,9 @@
 import { InvokeLLM } from "@/integrations/Core";
+import {
+  listCareEvents,
+  saveCareEvent,
+  saveCaregiverAlert,
+} from "@/lib/careEvents";
 
 const SYSTEM_MESSAGE = `Je bent Prettig Thuis, een rustige spraakassistent voor een Nederlandse oudere met lichte dementie. Spreek langzaam, in korte zinnen. Bied aan om te herhalen of het anders te zeggen. Elke reactie moet twee sleutels bevatten:
 1) speak_text: één tot drie korte zinnen voor de gebruiker.
@@ -126,51 +131,43 @@ export class PrettigThuisRealtimeClient {
 export class CareEventBackend {
   async postEvent(userId, ev) {
     try {
-      // Store in localStorage and log
-      const events = JSON.parse(localStorage.getItem('care_events') || '[]');
-      events.push({
+      await saveCareEvent({
         user_id: userId,
         ...ev,
-        timestamp: new Date().toISOString()
+        timestamp: ev.timestamp || new Date().toISOString(),
       });
-      
-      // Keep only last 100 events
-      if (events.length > 100) {
-        events.splice(0, events.length - 100);
-      }
-      
-      localStorage.setItem('care_events', JSON.stringify(events));
-      
+
       console.log(`[CareEvent] ${userId}:`, ev);
-      
+
       // Check for alert conditions
-      this.checkAlertConditions(userId, events);
+      await this.checkAlertConditions(userId);
     } catch (error) {
       console.error("Error posting care event:", error);
     }
   }
-  
-  checkAlertConditions(userId, events) {
+
+  async checkAlertConditions(userId) {
+    const events = await listCareEvents({ userId, limit: 50 });
     const recent = events.slice(-10); // Last 10 events
-    
+
     // Check for multiple ADL skips
-    const skippedADLs = recent.filter(e => 
+    const skippedADLs = recent.filter((e) =>
       e.type === 'adl_complete' && e.data?.result === 'skipped'
     );
-    
+
     if (skippedADLs.length >= 2) {
-      this.triggerCaregiverAlert(userId, {
+      await this.triggerCaregiverAlert(userId, {
         level: "attention",
         title: "Meerdere activiteiten overgeslagen",
         message: "Er zijn vandaag al meerdere dagelijkse activiteiten overgeslagen.",
         data: { skipped_count: skippedADLs.length }
       });
     }
-    
+
     // Check for incidents
-    const incidents = recent.filter(e => e.type === 'incident');
-    if (incidents.some(i => i.data?.severity === 'high')) {
-      this.triggerCaregiverAlert(userId, {
+    const incidents = recent.filter((e) => e.type === 'incident');
+    if (incidents.some((i) => i.data?.severity === 'high')) {
+      await this.triggerCaregiverAlert(userId, {
         level: "urgent",
         title: "Belangrijke incident",
         message: "Er heeft zich een incident voorgedaan dat aandacht vereist.",
@@ -178,20 +175,17 @@ export class CareEventBackend {
       });
     }
   }
-  
-  triggerCaregiverAlert(userId, alert) {
-    // Store alert for caregiver dashboard
-    const alerts = JSON.parse(localStorage.getItem('caregiver_alerts') || '[]');
-    alerts.push({
+
+  async triggerCaregiverAlert(userId, alert) {
+    await saveCaregiverAlert({
       user_id: userId,
       ...alert,
       timestamp: new Date().toISOString(),
       read: false
     });
-    localStorage.setItem('caregiver_alerts', JSON.stringify(alerts));
-    
+
     console.log(`[ALERT] ${userId}:`, alert);
-    
+
     // In production, this would trigger push notifications, SMS, etc.
   }
 }

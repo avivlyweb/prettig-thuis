@@ -10,6 +10,12 @@ import {
   Phone,
   X
 } from 'lucide-react';
+import {
+  dismissCaregiverAlert,
+  listCareEvents,
+  listCaregiverAlerts,
+  markCaregiverAlertRead,
+} from '@/lib/careEvents';
 
 export default function AlertSystem() {
   const [alerts, setAlerts] = useState([]);
@@ -28,31 +34,26 @@ export default function AlertSystem() {
     return () => clearInterval(interval);
   }, []);
 
-  const loadAlerts = () => {
-    const stored = localStorage.getItem('caregiver_alerts');
-    if (stored) {
-      setAlerts(JSON.parse(stored));
-    }
+  const loadAlerts = async () => {
+    const loaded = await listCaregiverAlerts({ limit: 300 });
+    setAlerts(loaded);
   };
 
-  const loadCareEvents = () => {
-    const stored = localStorage.getItem('care_events');
-    if (stored) {
-      setCareEvents(JSON.parse(stored));
-    }
+  const loadCareEvents = async () => {
+    const loaded = await listCareEvents({ limit: 300 });
+    setCareEvents(loaded);
   };
 
-  const markAlertRead = (alertIndex) => {
-    const updatedAlerts = [...alerts];
-    updatedAlerts[alertIndex].read = true;
-    setAlerts(updatedAlerts);
-    localStorage.setItem('caregiver_alerts', JSON.stringify(updatedAlerts));
+  const markAlertRead = async (alert) => {
+    if (!alert) return;
+    await markCaregiverAlertRead(alert);
+    await loadAlerts();
   };
 
-  const dismissAlert = (alertIndex) => {
-    const updatedAlerts = alerts.filter((_, index) => index !== alertIndex);
-    setAlerts(updatedAlerts);
-    localStorage.setItem('caregiver_alerts', JSON.stringify(updatedAlerts));
+  const dismissAlert = async (alert) => {
+    if (!alert) return;
+    await dismissCaregiverAlert(alert);
+    await loadAlerts();
   };
 
   const getRecentActivity = () => {
@@ -78,8 +79,8 @@ export default function AlertSystem() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {unreadAlerts.map((alert, index) => (
-              <div key={index} className="bg-white rounded-xl p-4 border border-red-200">
+            {unreadAlerts.map((alert) => (
+              <div key={alert.id || `${alert.timestamp}-${alert.title}`} className="bg-white rounded-xl p-4 border border-red-200">
                 <div className="flex justify-between items-start gap-4">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
@@ -108,7 +109,7 @@ export default function AlertSystem() {
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => markAlertRead(index)}
+                      onClick={() => markAlertRead(alert)}
                     >
                       <CheckCircle className="w-3 h-3 mr-1" />
                       Gelezen
@@ -116,7 +117,7 @@ export default function AlertSystem() {
                     <Button
                       size="sm"
                       variant="ghost"
-                      onClick={() => dismissAlert(index)}
+                      onClick={() => dismissAlert(alert)}
                     >
                       <X className="w-3 h-3" />
                     </Button>
