@@ -5,6 +5,7 @@ import { Mic, MicOff, Volume2, MessageSquare, Heart, RefreshCw, CheckCircle, Loa
 import { CareEventBackend } from '../services/voiceAssistant';
 import { createOpenAISession } from "@/functions/createOpenAISession";
 import { analyzeConversationForICF } from "@/functions/analyzeConversationForICF";
+import { interpretIcfCodes } from "@/lib/icfInterpretation";
 import { User } from "@/entities/User";
 
 // ICF-Based Activity Database
@@ -150,7 +151,7 @@ export default function RealtimeVoiceAssistant2_0() {
     if (lastProcessedUserInput.current === normalizedText) return;
     lastProcessedUserInput.current = normalizedText;
 
-    let icfCodes = [];
+    let detectedCodes = [];
     let confidence = 0.5;
     let reasons = [];
 
@@ -161,7 +162,7 @@ export default function RealtimeVoiceAssistant2_0() {
       });
 
       const detected = response?.data?.detected_codes || [];
-      icfCodes = detected
+      detectedCodes = detected
         .filter((item) => typeof item?.confidence === "number" ? item.confidence >= 0.6 : true)
         .map((item) => item.code)
         .filter(Boolean);
@@ -180,15 +181,26 @@ export default function RealtimeVoiceAssistant2_0() {
       console.warn("ICF detection failed for Talk 2.0 input:", error);
     }
 
+    const interpreted = interpretIcfCodes({
+      detectedCodes,
+      userText: normalizedText,
+      userProfile: user || {},
+    });
+
     await careEventBackend.current.postEvent("realtime_user", {
       type: "checkin",
-      icf_tags: icfCodes,
+      icf_tags: interpreted.interpreted_codes,
       confidence,
       data: {
         source: "talk_2_0",
         speaker: "user",
         user_text: normalizedText,
         icf_reasons: reasons,
+        detected_icf_codes: detectedCodes,
+        interpreted_icf_codes: interpreted.interpreted_codes,
+        interpreted_icf_scores: interpreted.interpreted_scores,
+        interpretation_indicators: interpreted.indicators_used,
+        interpretation_evidence: interpreted.evidence,
         timestamp: new Date().toISOString(),
       },
     });

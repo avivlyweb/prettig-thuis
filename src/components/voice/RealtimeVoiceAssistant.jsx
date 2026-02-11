@@ -5,6 +5,7 @@ import { Mic, MicOff, Volume2 } from 'lucide-react';
 import { CareEventBackend } from '../services/voiceAssistant';
 import { createOpenAISession } from "@/functions/createOpenAISession";
 import { analyzeConversationForICF } from "@/functions/analyzeConversationForICF";
+import { interpretIcfCodes } from "@/lib/icfInterpretation";
 
 
 export default function RealtimeVoiceAssistant() {
@@ -44,7 +45,7 @@ export default function RealtimeVoiceAssistant() {
     if (lastProcessedUserInput.current === normalizedText) return;
     lastProcessedUserInput.current = normalizedText;
 
-    let icfCodes = [];
+    let detectedCodes = [];
     let confidence = 0.5;
     let reasons = [];
 
@@ -55,7 +56,7 @@ export default function RealtimeVoiceAssistant() {
       });
 
       const detected = response?.data?.detected_codes || [];
-      icfCodes = detected
+      detectedCodes = detected
         .filter((item) => typeof item?.confidence === "number" ? item.confidence >= 0.6 : true)
         .map((item) => item.code)
         .filter(Boolean);
@@ -74,17 +75,27 @@ export default function RealtimeVoiceAssistant() {
       console.warn("ICF detection failed for realtime voice input:", error);
     }
 
-    setLastDetectedIcfCodes(icfCodes);
+    const interpreted = interpretIcfCodes({
+      detectedCodes,
+      userText: normalizedText,
+    });
+
+    setLastDetectedIcfCodes(interpreted.interpreted_codes);
 
     await careEventBackend.current.postEvent("realtime_user", {
       type: "checkin",
-      icf_tags: icfCodes,
+      icf_tags: interpreted.interpreted_codes,
       confidence,
       data: {
         source: "voice_home",
         speaker: "user",
         user_text: normalizedText,
         icf_reasons: reasons,
+        detected_icf_codes: detectedCodes,
+        interpreted_icf_codes: interpreted.interpreted_codes,
+        interpreted_icf_scores: interpreted.interpreted_scores,
+        interpretation_indicators: interpreted.indicators_used,
+        interpretation_evidence: interpreted.evidence,
         timestamp: new Date().toISOString(),
       },
     });

@@ -105,15 +105,22 @@ export default function ICFInterviewDashboard() {
     const allPatientTurns = transcripts.flatMap((t) => getPatientTurns(t));
     const patientTexts = allPatientTurns.map((t) => t.text);
 
-    const allIcfCodes = [
+    const detectedFromEvents = careEvents.flatMap((e) => e.data?.detected_icf_codes || []);
+    const interpretedFromEvents = careEvents.flatMap((e) => e.data?.interpreted_icf_codes || e.icf_tags || []);
+
+    const allDetectedCodes = [
       ...interviews.flatMap((i) => i.inferred_icf_codes || []),
-      ...careEvents.flatMap((e) => e.icf_tags || []),
+      ...detectedFromEvents,
     ];
-    const icfCounts = allIcfCodes.reduce((acc, code) => {
+    const allInterpretedCodes = interpretedFromEvents;
+
+    const makeCounts = (codes) => codes.reduce((acc, code) => {
       if (!code) return acc;
       acc[code] = (acc[code] || 0) + 1;
       return acc;
     }, {});
+    const detectedCounts = makeCounts(allDetectedCodes);
+    const interpretedCounts = makeCounts(allInterpretedCodes);
 
     const activityEvents = careEvents.filter((e) =>
       ["quest_started", "adl_complete", "memory_view", "compass_choice"].includes(e.type)
@@ -130,13 +137,14 @@ export default function ICFInterviewDashboard() {
 
     return {
       totalInterviews: interviews.length,
-      uniqueIcfCodes: Object.keys(icfCounts).length,
+      uniqueIcfCodes: Object.keys(interpretedCounts).length,
       avgDuration: interviews.length > 0
         ? interviews.reduce((sum, i) => sum + (i.session_duration_minutes || 0), 0) / interviews.length
         : 0,
       patientTurnCount: allPatientTurns.length,
       patientCheckinCount: patientCheckins.length,
-      topIcfCodes: Object.entries(icfCounts).sort(([, a], [, b]) => b - a).slice(0, 8),
+      topDetectedCodes: Object.entries(detectedCounts).sort(([, a], [, b]) => b - a).slice(0, 8),
+      topInterpretedCodes: Object.entries(interpretedCounts).sort(([, a], [, b]) => b - a).slice(0, 8),
       topKeywords: extractTopKeywords(patientTexts, 10),
       activityCounts,
     };
@@ -233,21 +241,34 @@ export default function ICFInterviewDashboard() {
         </div>
 
         {/* Most Frequent ICF Codes */}
-        {dashboardData.topIcfCodes.length > 0 && (
+        {dashboardData.topInterpretedCodes.length > 0 && (
           <Card className="border-2 border-orange-100 rounded-2xl mb-8">
             <CardHeader>
               <CardTitle className="font-inter flex items-center gap-2">
                 <TrendingUp className="w-5 h-5 text-orange-600" />
-                Meest Genoemde ICF Codes (spraak + activiteiten)
+                ICF Codes Uitgesplitst (spraakdetectie vs interpretatie)
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="flex flex-wrap gap-2">
-                {dashboardData.topIcfCodes.map(([code, count]) => (
-                  <Badge key={code} className="bg-orange-100 text-orange-800 text-sm px-3 py-1">
-                    {code} ({count}x)
-                  </Badge>
-                ))}
+            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <p className="text-sm text-gray-600 mb-2">Gedetecteerd uit patiëntspraak</p>
+                <div className="flex flex-wrap gap-2">
+                  {dashboardData.topDetectedCodes.map(([code, count]) => (
+                    <Badge key={`det-${code}`} className="bg-blue-100 text-blue-800 text-sm px-3 py-1">
+                      {code} ({count}x)
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600 mb-2">Geïnterpreteerd met context/prior</p>
+                <div className="flex flex-wrap gap-2">
+                  {dashboardData.topInterpretedCodes.map(([code, count]) => (
+                    <Badge key={`int-${code}`} className="bg-orange-100 text-orange-800 text-sm px-3 py-1">
+                      {code} ({count}x)
+                    </Badge>
+                  ))}
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -322,11 +343,18 @@ export default function ICFInterviewDashboard() {
               const transcript = parseTranscript(interview.conversation_transcript);
               const patientTurns = getPatientTurns(transcript);
               const relatedEvents = getRelatedEvents(interview);
-              const interviewIcfCodes = [
+              const detectedFromEventsForInterview = relatedEvents.flatMap((event) => event.data?.detected_icf_codes || []);
+              const interpretedFromEventsForInterview = relatedEvents.flatMap((event) => event.data?.interpreted_icf_codes || event.icf_tags || []);
+              const detectedInterviewCodes = [
                 ...(interview.inferred_icf_codes || []),
-                ...relatedEvents.flatMap((event) => event.icf_tags || []),
+                ...detectedFromEventsForInterview,
               ];
-              const uniqueInterviewCodes = [...new Set(interviewIcfCodes)];
+              const interpretedInterviewCodes = [
+                ...relatedEvents.flatMap((event) => event.icf_tags || []),
+                ...interpretedFromEventsForInterview,
+              ];
+              const uniqueDetectedInterviewCodes = [...new Set(detectedInterviewCodes)];
+              const uniqueInterpretedInterviewCodes = [...new Set(interpretedInterviewCodes)];
               
               return (
                 <Card key={interview.id} className="border-2 border-gray-200 rounded-2xl">
@@ -352,7 +380,7 @@ export default function ICFInterviewDashboard() {
                           </Badge>
                           <Badge variant="outline" className="bg-purple-50">
                             <Code className="w-3 h-3 mr-1" />
-                            {(interview.inferred_icf_codes || []).length} ICF codes
+                            {uniqueInterpretedInterviewCodes.length} geïnterpreteerde ICF codes
                           </Badge>
                           <Badge variant="outline" className="bg-green-50">
                             <MessageSquare className="w-3 h-3 mr-1" />
@@ -378,15 +406,30 @@ export default function ICFInterviewDashboard() {
                     <CardContent className="pt-0 space-y-6">
 
                       {/* ICF Codes */}
-                      {uniqueInterviewCodes.length > 0 && (
+                      {(uniqueDetectedInterviewCodes.length > 0 || uniqueInterpretedInterviewCodes.length > 0) && (
                         <div>
-                          <h4 className="font-semibold text-gray-900 mb-3">ICF Codes uit gesprek + activiteiten:</h4>
-                          <div className="flex flex-wrap gap-2">
-                            {uniqueInterviewCodes.map((code) => (
-                              <Badge key={code} className="bg-gray-100 text-gray-800">
-                                {code}
-                              </Badge>
-                            ))}
+                          <h4 className="font-semibold text-gray-900 mb-3">ICF Detectie vs Interpretatie:</h4>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div>
+                              <p className="text-xs text-gray-500 mb-2">Gedetecteerd (ruwe spraak)</p>
+                              <div className="flex flex-wrap gap-2">
+                                {uniqueDetectedInterviewCodes.map((code) => (
+                                  <Badge key={`det-${code}`} className="bg-blue-100 text-blue-800">
+                                    {code}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </div>
+                            <div>
+                              <p className="text-xs text-gray-500 mb-2">Geïnterpreteerd (met context)</p>
+                              <div className="flex flex-wrap gap-2">
+                                {uniqueInterpretedInterviewCodes.map((code) => (
+                                  <Badge key={`int-${code}`} className="bg-orange-100 text-orange-800">
+                                    {code}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </div>
                           </div>
                         </div>
                       )}
@@ -412,6 +455,16 @@ export default function ICFInterviewDashboard() {
                                 {event.data?.user_text && (
                                   <p className="text-sm text-gray-800 mt-1">
                                     Patiënt zei: "{event.data.user_text}"
+                                  </p>
+                                )}
+                                {Array.isArray(event.data?.detected_icf_codes) && event.data.detected_icf_codes.length > 0 && (
+                                  <p className="text-xs text-blue-800 mt-1">
+                                    Detectie: {event.data.detected_icf_codes.join(", ")}
+                                  </p>
+                                )}
+                                {Array.isArray(event.data?.interpreted_icf_codes) && event.data.interpreted_icf_codes.length > 0 && (
+                                  <p className="text-xs text-orange-800 mt-1">
+                                    Interpretatie: {event.data.interpreted_icf_codes.join(", ")}
                                   </p>
                                 )}
                               </div>
