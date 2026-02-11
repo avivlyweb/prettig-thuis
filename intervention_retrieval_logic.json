@@ -1,0 +1,10 @@
+{
+    "description": "Defines intervention retrieval mechanism aligned with KNGF 2025 and WHO ICF.",
+    "retrieval_process": {
+        "step_1": "Map detected ICF codes to guideline domain",
+        "step_2": "Retrieve evidence-based intervention",
+        "step_3": "Match severity level (0-4)",
+        "step_4": "Output intervention recommendation with source reference"
+    },
+    "requires_guideline_kb": true
+}

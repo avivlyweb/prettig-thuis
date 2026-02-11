@@ -9,6 +9,15 @@ import { ICFCode } from "@/entities/ICFCode";
 import { ICFInterviewLog } from "@/entities/ICFInterviewLog";
 import { createOpenAISession } from "@/functions/createOpenAISession";
 import { analyzeConversationForICF } from "@/functions/analyzeConversationForICF";
+import {
+  buildPatientSummary,
+  buildProfessionalSummary,
+  computeCoverage,
+  getNextTemplateQuestion,
+  inferContextFactors,
+  estimateFacScore,
+  retrieveInterventions,
+} from "@/lib/icfClinicalReasoning";
 
 const MODE = {
   PATIENT: 'patient',
@@ -35,6 +44,8 @@ export default function RealtimeICFInterviewer() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [detectedICFCodesLive, setDetectedICFCodesLive] = useState([]);
   const [lastAnalysisTranscriptLength, setLastAnalysisTranscriptLength] = useState(0);
+  const [coverageLive, setCoverageLive] = useState(null);
+  const [nextGuidedQuestion, setNextGuidedQuestion] = useState("");
   
   const peerConnection = useRef(null);
   const dataChannel = useRef(null);
@@ -42,6 +53,7 @@ export default function RealtimeICFInterviewer() {
   const audioPlayer = useRef(null);
   const isCleaningUp = useRef(false);
   const analysisTimeoutRef = useRef(null);
+  const autoSwitchedRef = useRef(false);
 
   const log = useCallback((msg) => {
     console.log("[ICFInterviewer]", msg);
@@ -85,6 +97,10 @@ export default function RealtimeICFInterviewer() {
         setDetectedICFCodesLive(prev => {
           const updated = [...new Set([...prev, ...newCodes])]; // Add new codes and ensure uniqueness
           console.log("✅ ICF codes detected:", updated);
+          const coverage = computeCoverage(conversationTranscript, updated);
+          setCoverageLive(coverage);
+          const nextQuestion = getNextTemplateQuestion(conversationTranscript, coverage);
+          setNextGuidedQuestion(nextQuestion.question);
           return updated;
         });
         
@@ -120,6 +136,13 @@ export default function RealtimeICFInterviewer() {
     };
   }, [conversationTranscript, isSessionActive, analyzeConversationLive]);
 
+  useEffect(() => {
+    const coverage = computeCoverage(conversationTranscript, detectedICFCodesLive);
+    setCoverageLive(coverage);
+    const nextQuestion = getNextTemplateQuestion(conversationTranscript, coverage);
+    setNextGuidedQuestion(nextQuestion.question);
+  }, [conversationTranscript, detectedICFCodesLive]);
+
   const saveSessionLog = useCallback(async () => {
     if (!sessionStart || conversationTranscript.length === 0) return;
     
@@ -130,6 +153,19 @@ export default function RealtimeICFInterviewer() {
       // Use the live detected codes as the inferred codes for logging
       // Combine with any previously inferred codes (if any, though in this setup live analysis takes precedence)
       const finalICFCodes = [...new Set([...detectedICFCodesLive, ...inferredICFCodes])];
+      const patientTurns = conversationTranscript.filter((t) => t.speaker === "Patiënt");
+      const coverage = computeCoverage(conversationTranscript, finalICFCodes);
+      const contextFactors = inferContextFactors(patientTurns);
+      const facEstimate = estimateFacScore(finalICFCodes, contextFactors);
+      const interventions = retrieveInterventions(finalICFCodes, contextFactors);
+      const patientSummary = buildPatientSummary(user?.display_name || "u", coverage);
+      const professionalSummary = buildProfessionalSummary({
+        detectedCodes: finalICFCodes,
+        coverage,
+        contextFactors,
+        facEstimate,
+        interventions,
+      });
       
       await ICFInterviewLog.create({
         user_id: user?.id || "demo_user",
@@ -139,8 +175,8 @@ export default function RealtimeICFInterviewer() {
         session_start: sessionStart.toISOString(),
         session_end: sessionEnd.toISOString(),
         session_duration_minutes: Math.round(durationMinutes),
-        ai_interpretation_patient: "Samenvatting voor patiënt wordt gegenereerd...",
-        ai_interpretation_professional: "Klinische interpretatie wordt gegenereerd..."
+        ai_interpretation_patient: patientSummary,
+        ai_interpretation_professional: professionalSummary
       });
       
       log(`✅ Gesprek opgeslagen met ${finalICFCodes.length} ICF codes`);
@@ -188,6 +224,9 @@ export default function RealtimeICFInterviewer() {
       setSessionStart(null);
       setDetectedICFCodesLive([]); // Clear live codes on session stop
       setLastAnalysisTranscriptLength(0); // Reset for next session
+      setCoverageLive(null);
+      setNextGuidedQuestion("");
+      autoSwitchedRef.current = false;
       log("Klaar om te beginnen");
     } finally {
       isCleaningUp.current = false;
@@ -254,184 +293,69 @@ export default function RealtimeICFInterviewer() {
           `${code.icf_code}: ${code.display_name_en}`
         ).join('\n')
       : "Common ICF domains: d4 (mobility), d5 (self-care), d7 (relationships), b1 (mental functions)";
+    const coverage = computeCoverage(conversationTranscript, detectedICFCodesLive);
+    const nextQuestion = getNextTemplateQuestion(conversationTranscript, coverage);
+    const progressText = coverage.domainStatus
+      .map((item) => `${item.domain}: detectie=${item.detected ? "ja" : "nee"}, followups=${item.followups}`)
+      .join(" | ");
 
-    return `Je bent een empathische Nederlandse gesprekspartner voor ${user?.display_name || 'de gebruiker'}, een oudere met lichte dementie.
+    return `Je bent een warme gesprekspartner voor ${user?.display_name || 'de gebruiker'}.
 
-**JE ROL: VRIENDELIJKE GESPREKSPARTNER**
-Je voert een natuurlijk, vriendelijk gesprek zoals je met een goede bekende zou praten. Je bent NIET een dokter, therapeut of computer. Je bent gewoon iemand die echt geïnteresseerd is en luistert.
+Gespreksbeleid:
+- Start met 1 empathische zin en stel daarna 1 gerichte vraag.
+- Verzamel informatie over wat, wie, waar, wanneer en hoe.
+- Vraag door over activiteiten, participatie, lichaamsfuncties en omgevingsfactoren.
+- Gebruik eenvoudige taal. Geen klinische termen richting patiënt.
+- Rond NIET af zolang minder dan 3 ICF-domeinen voldoende uitgevraagd zijn.
+- Per domein zijn minimaal 2 vervolgvragen nodig.
 
-**CRUCIALE EMPATHIE REGEL:**
-Bij ELKE negatieve of zorgwekkende uitspraak (zoals "ik ben gevallen", "ik heb pijn", "ik heb slecht geslapen", "ik voel me verdrietig"):
-1. Stop DIRECT met je huidige vraag
-2. Toon EERST empathie: "Oh jeetje, wat vervelend!" of "Gaat het nu wel goed met u?"
-3. Stel vervolgvragen: "Heeft u zich bezeerd?" of "Heeft u hulp gehad?"
-4. Wacht met andere onderwerpen tot de zorg is besproken
-5. Ga NOOIT direct door naar een positief onderwerp als er een zorg is
+Realtime voortgang (intern):
+${progressText}
+Domeinen voltooid: ${coverage.satisfiedDomainCount}/3
 
-**GESPREKSSTIJL:**
-- Spreek zoals je met een vriend of familielid zou praten
-- Gebruik NOOIT schalen (0-4), scores of klinische termen
-- Stel één vraag tegelijk, wacht op antwoord
-- Gebruik korte, simpele zinnen (max 10-12 woorden)
-- Toon oprechte interesse en nieuwsgierigheid
-- Lach mee, wees verbaasd, toon medeleven - reageer menselijk!
+Volgende gerichte vraag (gebruik deze of een equivalente variant):
+${nextQuestion.question}
 
-**ONDERWERPEN OM NATUURLIJK TE BESPREKEN:**
+Adaptive mode:
+- Bij fragmentarische input (zoals "moeilijk... lopen... bang") stel verduidelijkende korte vragen.
+- Verzamel extra context over tijdstip, hulp, frequentie en impact.
+- Bij twijfel: vraag door in plaats van samenvatten.
 
-**1. FYSIEK WELZIJN** (b530, b1300, b1340, b152, b280, b455)
-Praat hierover als een bezorgde vriend:
-- "Hoe voelt u zich vandaag? Lekker uitgerust?"
-- "Heeft u goed geslapen vannacht? Of lag u nog te woelen?"
-- "Heeft u ergens last van? Pijn in uw rug misschien, of uw knieën?"
-- "Voelt u zich fit vandaag, of bent u een beetje moe?"
-- "Hoe gaat het met uw eetlust? Heeft u al lekker gegeten?"
-- "Merkt u dat u snel buiten adem raakt als u de trap opgaat?"
-
-**2. DAGELIJKSE BEZIGHEDEN** (d230, d240, d5701, d640)
-Vraag alsof je echt benieuwd bent naar hun dag:
-- "Wat heeft u vandaag allemaal gedaan? Iets leuks?"
-- "Heeft u vandaag al wat klusjes in huis kunnen doen?"
-- "Hoe ging het vanochtend met opstaan en aankleden?"
-- "Lukt het om lekker gezond te eten, of is dat soms moeilijk?"
-- "Voelt u zich wel eens gestrest, of gaat het eigenlijk best rustig?"
-- "Kunt u nog goed uw huishouden doen, of is dat lastig geworden?"
-
-**3. BEWEGEN EN ACTIEF ZIJN** (d450, d4501, d4750, d9201)
-Praat over beweging op een positieve, nieuwsgierige manier:
-- "Bent u vandaag al naar buiten geweest? Een wandelingetje gemaakt?"
-- "Fietst u nog wel eens? Het is toch zo mooi weer om te fietsen!"
-- "Hoe ver kunt u nog lopen zonder moe te worden?"
-- "Doet u nog aan sport, of aan leuke activiteiten?"
-- "Zou u graag meer willen bewegen, of vindt u het nu prima zo?"
-
-**4. HOE U ZICH VOELT** (b152, p230, p320, copingstrategieën)
-Vraag met oprechte zorg:
-- "Hoe voelt u zich in uw hoofd? Vrolijk, of een beetje somber?"
-- "Waar bent u trots op? Wat ging er goed vandaag?"
-- "Gelooft u in uzelf, dat u dingen kunt? Of twijfelt u wel eens?"
-- "Wat doet u als u zich niet zo lekker voelt? Wat helpt dan?"
-- "Vindt u het leuk om actief te zijn, of ziet u er tegenop?"
-
-**5. CONTACT MET ANDEREN** (d7200, d750, d9205, d710, familiesteun)
-Vraag alsof je over vrienden praat:
-- "Heeft u vandaag al iemand gesproken? Gebeld misschien?"
-- "Ziet u uw kinderen of kleinkinderen nog regelmatig?"
-- "Heeft u nog contact met buren of vrienden uit de buurt?"
-- "Vindt u het makkelijk om nieuwe mensen te leren kennen?"
-- "Voelt u zich wel eens eenzaam, of heeft u genoeg gezelligheid?"
-- "Zijn er clubjes of activiteiten waar u graag naartoe zou willen?"
-
-**NATUURLIJKE OVERGANGEN:**
-Wissel tussen onderwerpen zoals je dat in een echt gesprek zou doen:
-- "Oh ja, en hoe ging het verder met..." 
-- "Nu ik eraan denk..."
-- "Mag ik u ook iets vragen over..."
-- "Vertel eens..."
-
-**POSITIEVE FOCUS (maar alleen op het juiste moment):**
-- Vier kleine successen: "Wat goed dat u dat gedaan heeft!"
-- Benadruk wat WEL lukt: "Dat is knap hoor, dat u dat nog zelf doet!"
-- Moedig aan zonder te pushen: "Misschien wilt u dat binnenkort eens proberen?"
-- Maar doe dit NOOIT direct na een zorgmelding - eerst empathie!
-
-**WAT JE NIET DOET:**
-- Gebruik GEEN ICF codes in gesprek
-- Vraag NOOIT om cijfers of scores (0-4)
-- Stel GEEN klinische vragen zoals "Beoordeel uw energieniveau"
-- Gebruik GEEN moeilijke woorden zoals "uithoudingsvermogen" of "coping"
-- Spring NIET van onderwerp naar onderwerp zonder context
-- Negeer NOOIT een zorg of probleem
-
-**ICF CONTEXT (VOOR JOUW BEGRIP - NOEM DIT NOOIT):**
-Je verzamelt informatie voor deze gebieden:
+ICF-context (intern, niet hardop noemen):
 ${icfContext}
 
-Maar je praat erover als een mens, niet als een systeem. Je bent een vriend die luistert.
-
-**ONDERZOEKSBEVINDING:**
-Door de interventie verandert zelfperceptie van 42% negatief naar 46% positief.
-Help dit te bereiken door:
-- Oprecht te luisteren
-- Successen te vieren
-- Vertrouwen te geven
-- Maar vooral: er te zijn wanneer het moeilijk is
-
-Reageer altijd in het Nederlands, natuurlijk en warm.`;
-  }, [icfCodes, user]);
+Antwoord altijd in warm, eenvoudig Nederlands met korte zinnen.`;
+  }, [icfCodes, user, conversationTranscript, detectedICFCodesLive]);
 
   const getProfessionalModeInstructions = useCallback(() => {
-    const conversationSummary = conversationTranscript
-      .map(t => `[${t.speaker}]: ${t.text}`)
-      .join('\n');
+    const patientTurns = conversationTranscript
+      .filter((t) => t.speaker === "Patiënt")
+      .map((t) => t.text)
+      .join("\n");
+    const coverage = computeCoverage(conversationTranscript, detectedICFCodesLive);
+    const contextFactors = inferContextFactors(conversationTranscript.filter((t) => t.speaker === "Patiënt"));
+    const facEstimate = estimateFacScore(detectedICFCodesLive, contextFactors);
+    const interventions = retrieveInterventions(detectedICFCodesLive, contextFactors);
 
-    return `Je bent nu een professionele gezondheidszorg assistent die rapporteert aan een fysiotherapeut, ergotherapeut of verpleegkundige.
+    return `Je rapporteert aan een zorgverlener in professioneel Nederlands.
 
-**JE ROL: KLINISCHE RAPPORTEUR**
-Je analyseert het gesprek met de patiënt en rapporteert aan de professional.
+Gebruik patiëntinput:
+${patientTurns || "Nog geen patiëntinput beschikbaar."}
 
-**VORIG GESPREK MET PATIËNT:**
-${conversationSummary || 'Nog geen gesprek gevoerd.'}
+Verplichte output:
+1) ICF-samenvatting met code + domein + ernst (0-4) + confidence (0-1)
+2) FAC-inschatting (0-5) met rationale
+3) Contextfactoren: pijn (b280), balans (b755), valangst (b152), omgeving (e155)
+4) Aanbevolen interventies met bronverwijzing (KNGF 2025 / WHO ICF)
 
-**ONDERZOEKSGEBASEERDE ANALYSE - TOP 5 PRIORITEITEN:**
-Focus specifiek op deze wetenschappelijk bewezen belangrijke gebieden:
+Realtime context:
+- Domeindekking: ${coverage.satisfiedDomainCount}/3 domeinen voltooid
+- Huidige FAC: ${facEstimate.fac_score}/5
+- Contextscores: pijn ${contextFactors.factors.pain.severity}/4, balans ${contextFactors.factors.balance.severity}/4, valangst ${contextFactors.factors.fear_of_falling.severity}/4, omgeving ${contextFactors.factors.environment.severity}/4
+- Interventievoorstellen: ${interventions.map((i) => i.intervention).join("; ")}
 
-1. **b530 - Gewicht onderhoud** - Voedt de patiënt zich goed? Zijn er zorgen over gewicht?
-2. **b1300 - Energieniveau** - Hoe is het energieniveau? Voelt de patiënt zich fit of moe?
-3. **p230 - Zelfvertrouwen (Self-efficacy)** - Gelooft de patiënt in eigen kunnen? Positieve zelfinschatting?
-4. **d240 - Omgaan met stress** - Hoe gaat de patiënt om met stress en psychologische eisen?
-5. **d5701 - Dieet en fitness management** - Is er aandacht voor gezonde levensstijl?
-
-**AANVULLENDE BELANGRIJKE ICF GEBIEDEN:**
-- **d9201 - Sport en beweging** - Dit neemt toe van #13 naar #4 prioriteit na interventie!
-- **d4750 - Fietsen** - CULTUREEL RELEVANT in Nederland, unieke prioriteit
-- **d7200, d750 - Sociale relaties** - Worden steeds belangrijker tijdens interventie
-- **d240 - Stresshantering** - Cruciaal voor gedragsverandering
-
-**BEWEZEN UITKOMSTEN (Sabina's onderzoek, 2011-2019, n=446):**
-- Functioneren verandert van 42% negatief → 46% positief
-- Zelfvertrouwen (p230) blijft in top 3 - CRUCIAAL voor gedragsverandering
-- Sport (d9201) springt van #13 → #4 - grote winst mogelijk!
-- Gewicht en energie blijven top zorgen door hele interventie
-- Sociale relaties worden steeds belangrijker
-
-**WAT JE DOET:**
-1. **Vat het gesprek samen** in klinische termen, focus op Top 5 prioriteiten
-2. **Identificeer relevante ICF codes** op basis van wat besproken is
-3. **Highlight positieve verschuivingen** - van negatief naar positief functioneren
-4. **Geef concrete observaties** met voorbeelden uit het gesprek
-5. **Noem zorgsignalen** of aandachtspunten
-6. **Stel evidence-based follow-up vragen** voor aan de professional
-7. **Suggereer doelen** gebaseerd op onderzoeksprioriteiten
-
-**FORMAAT:**
-Begin met: "Samenvatting voor professional:"
-
-**PRIORITEITEN ANALYSE:**
-- Welke van de Top 5 zijn besproken?
-- Zijn er positieve of negatieve trends?
-- Is er vooruitgang richting sport/beweging (d9201)?
-- Hoe is het zelfvertrouwen (p230)?
-
-**ICF CLASSIFICATIE:**
-- Noem specifieke codes met uitleg
-- Link aan onderzoeksbevindingen waar relevant
-- Markeer Nederlandse context (bijv. fietsen)
-
-**AANBEVELINGEN:**
-- Evidence-based doelen voorstellen
-- Focus op self-efficacy (p230) - top predictor van succes
-- Stimuleer sport/beweging (d9201) - grote impact mogelijk
-- Sociale connecties versterken (d7200, d750)
-
-**CULTUUR CONTEXT:**
-- d4750 (fietsen) is unieke Nederlandse prioriteit
-- Reflecteert transportcultuur en belangrijk voor mobiliteit
-
-**BESCHIKBARE ICF CODES:**
-Je hebt toegang tot de volledige ICF classificatie. Refereer naar specifieke codes wanneer relevant.
-
-Reageer in het Nederlands, gebruik professionele taal met evidence-based inzichten.`;
-  }, [conversationTranscript]);
+Antwoord compact, klinisch, en direct bruikbaar voor besluitvorming.`;
+  }, [conversationTranscript, detectedICFCodesLive]);
 
   const handleDataChannelMessage = useCallback((event) => {
     try {
@@ -585,6 +509,16 @@ Reageer in het Nederlands, gebruik professionele taal met evidence-based inzicht
     log(`🔄 Geschakeld naar ${newMode === MODE.PATIENT ? 'Patiënt' : 'Professional'} modus`);
   }, [currentMode, log, sendSessionConfiguration]);
 
+  useEffect(() => {
+    if (!isSessionActive || currentMode !== MODE.PATIENT) return;
+    if (!coverageLive?.readyForSummary) return;
+    if (autoSwitchedRef.current) return;
+
+    autoSwitchedRef.current = true;
+    switchMode(MODE.PROFESSIONAL);
+    log("✅ Voldoende ICF-gegevens verzameld, automatisch naar professional modus.");
+  }, [coverageLive, currentMode, isSessionActive, log, switchMode]);
+
   const createPeerConnection = useCallback(async () => {
     // Prevent creating a new connection if one already exists
     if (peerConnection.current || isCleaningUp.current) return;
@@ -595,6 +529,9 @@ Reageer in het Nederlands, gebruik professionele taal met evidence-based inzicht
     setDetectedICFCodesLive([]); // Clear live codes on new session start
     setLastAnalysisTranscriptLength(0); // Reset analysis tracker
     setInferredICFCodes([]); // Clear previously inferred codes
+    setCoverageLive(null);
+    setNextGuidedQuestion("");
+    autoSwitchedRef.current = false;
 
     try {
       log("Sessie token aanvragen...");
@@ -831,6 +768,34 @@ Reageer in het Nederlands, gebruik professionele taal met evidence-based inzicht
               <p className="text-sm text-purple-700 mt-3">
                 ✨ De AI detecteert automatisch ICF codes uit het gesprek!
               </p>
+            </CardContent>
+          </Card>
+        )}
+
+        {isSessionActive && coverageLive && (
+          <Card className="border-2 border-emerald-200 bg-emerald-50 rounded-2xl">
+            <CardContent className="p-6 space-y-3">
+              <h3 className="font-inter font-semibold text-lg text-emerald-800">
+                ICF Domeinvoortgang
+              </h3>
+              <div className="flex flex-wrap gap-2">
+                {coverageLive.domainStatus.map((item) => (
+                  <Badge
+                    key={item.domain}
+                    className={item.satisfied ? "bg-emerald-600 text-white" : "bg-emerald-100 text-emerald-800"}
+                  >
+                    {item.domain} ({item.followups}/2)
+                  </Badge>
+                ))}
+              </div>
+              <p className="text-sm text-emerald-700">
+                Voltooid: {coverageLive.satisfiedDomainCount}/3 domeinen
+              </p>
+              {nextGuidedQuestion && (
+                <p className="text-sm text-emerald-800">
+                  Volgende vraag: "{nextGuidedQuestion}"
+                </p>
+              )}
             </CardContent>
           </Card>
         )}

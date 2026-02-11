@@ -1,0 +1,28 @@
+{
+    "description": "ICF-based question templates for elderly assessment.",
+    "templates": {
+        "d450": [
+            "Hoe ver kunt u lopen?",
+            "Heeft u hulp nodig bij het lopen?",
+            "Wanneer is lopen het moeilijkst?"
+        ],
+        "d410": [
+            "Hoe gaat het met opstaan uit bed of stoel?",
+            "Heeft u steun nodig?"
+        ],
+        "b280": [
+            "Waar voelt u pijn?",
+            "Wanneer is de pijn het ergst?",
+            "Wat helpt tegen de pijn?"
+        ],
+        "b134": [
+            "Hoe slaapt u?",
+            "Wordt u vaak wakker?",
+            "Voelt u zich uitgerust?"
+        ],
+        "b152": [
+            "Bent u bang om te vallen?",
+            "Wanneer voelt u zich het meest onzeker?"
+        ]
+    }
+}

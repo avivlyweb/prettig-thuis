@@ -1,0 +1,22 @@
+{
+    "description": "Defines structured scoring fields for pain, balance, fear of falling, and environmental factors.",
+    "fields": {
+        "pain": {
+            "icf_code": "b280",
+            "severity_scale": "0-4"
+        },
+        "balance": {
+            "icf_code": "b755",
+            "severity_scale": "0-4"
+        },
+        "fear_of_falling": {
+            "icf_code": "b152",
+            "severity_scale": "0-4"
+        },
+        "environment": {
+            "icf_code": "e155",
+            "severity_scale": "0-4"
+        }
+    },
+    "integration_logic": "All context fields must be explicitly scored before final clinical summary."
+}

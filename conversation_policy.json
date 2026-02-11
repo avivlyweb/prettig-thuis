@@ -1,0 +1,10 @@
+{
+    "description": "Active questioning framework for elderly ICF-based assessment.",
+    "rules": [
+        "Always start with one empathic sentence.",
+        "Ask one focused follow-up question.",
+        "Cover minimum three ICF domains.",
+        "Ask at least two follow-up questions per domain.",
+        "Do not summarize before sufficient domain coverage."
+    ]
+}
