@@ -95,6 +95,8 @@ Server functions are under `functions/` and include:
 
 - Care events and caregiver alerts are now persisted through a shared backend-first service in `src/lib/careEvents.js` (with local fallback).
 - `Caregiver`/`AlertSystem` reads from this shared service instead of only direct browser-local storage.
+- Voice-origin events now carry stable `user_id` + `session_id` so caregiver analytics resolves to the correct user instead of fallback IDs.
+- Daily summary tiles now include speech check-ins and ADL step events, not only quest placeholders.
 
 ### Voice to ICF improvements
 
@@ -114,6 +116,7 @@ Server functions are under `functions/` and include:
 
 - `ICFInterviewDashboard` is now patient-data driven.
 - Insights are built from real patient utterances and related activity events.
+- Patient utterance metrics now combine both interview transcripts and realtime voice check-ins from care events.
 - Dashboard shows:
 - detected vs interpreted ICF code distributions
 - patient-only transcript insights

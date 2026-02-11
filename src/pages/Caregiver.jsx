@@ -4,12 +4,19 @@ import { User } from "@/entities/User";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { listCareEvents } from "@/lib/careEvents";
+import { ICFInterviewLog } from "@/entities/ICFInterviewLog";
 import {
   Shield,
   AlertTriangle,
   BarChart3,
   Users,
-  Settings
+  Settings,
+  MessageSquare,
+  Mic,
+  Code,
+  Activity,
 } from "lucide-react";
 import AlertSystem from "../components/caregiver/AlertSystem";
 
@@ -17,6 +24,13 @@ export default function Caregiver() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [analytics, setAnalytics] = useState({
+    todayEvents: 0,
+    speechCheckins: 0,
+    uniqueIcfCodes: 0,
+    interviews: 0,
+    recentPatientStatements: [],
+  });
 
   useEffect(() => {
     checkAuthentication();
@@ -28,11 +42,53 @@ export default function Caregiver() {
       if (currentUser?.caregiver_mode) {
         setUser(currentUser);
         setIsAuthenticated(true);
+        await loadAnalytics(currentUser.id);
       }
-    } catch (error) {
+    } catch {
       setIsAuthenticated(false);
     }
     setLoading(false);
+  };
+
+  const loadAnalytics = async (userId) => {
+    try {
+      const [events, interviews] = await Promise.all([
+        listCareEvents({ limit: 1000, userId }),
+        ICFInterviewLog.list("-created_date", 200),
+      ]);
+
+      const today = new Date().toDateString();
+      const todayEvents = events.filter((event) => new Date(event.timestamp).toDateString() === today);
+      const speechCheckins = events.filter((event) => event.type === "checkin" && (event.speaker === "user" || event.data?.speaker === "user"));
+
+      const codeSet = new Set();
+      for (const event of events) {
+        const codes = event.data?.interpreted_icf_codes || event.icf_tags || [];
+        for (const code of codes) {
+          if (code) codeSet.add(code);
+        }
+      }
+
+      const recentPatientStatements = speechCheckins
+        .map((event) => ({
+          text: event.text || event.data?.user_text || event.transcript || "",
+          timestamp: event.timestamp,
+        }))
+        .filter((item) => item.text)
+        .slice(-5)
+        .reverse();
+
+      const userInterviews = interviews.filter((item) => !item.user_id || item.user_id === userId || item.user_id === "demo_user");
+      setAnalytics({
+        todayEvents: todayEvents.length,
+        speechCheckins: speechCheckins.length,
+        uniqueIcfCodes: codeSet.size,
+        interviews: userInterviews.length,
+        recentPatientStatements,
+      });
+    } catch (error) {
+      console.error("Error loading caregiver analytics:", error);
+    }
   };
 
   const enableCaregiverMode = async () => {
@@ -138,14 +194,48 @@ export default function Caregiver() {
               <CardHeader>
                 <CardTitle className="font-inter">Gebruiksstatistieken</CardTitle>
               </CardHeader>
-              <CardContent>
-                <p className="font-lato text-gray-600">
-                  Gedetailleerde analyse van dagelijkse activiteiten, voortgang en patronen.
-                </p>
-                <div className="mt-4 p-4 bg-blue-50 rounded-xl">
-                  <p className="font-medium text-blue-800">
-                    Functie in ontwikkeling - binnenkort beschikbaar
-                  </p>
+              <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                  <div className="bg-blue-50 border border-blue-100 rounded-xl p-4">
+                    <p className="text-xs text-blue-700 mb-1">Events vandaag</p>
+                    <p className="text-2xl font-bold text-blue-900">{analytics.todayEvents}</p>
+                    <Activity className="w-4 h-4 text-blue-600 mt-2" />
+                  </div>
+                  <div className="bg-cyan-50 border border-cyan-100 rounded-xl p-4">
+                    <p className="text-xs text-cyan-700 mb-1">Patiënt check-ins</p>
+                    <p className="text-2xl font-bold text-cyan-900">{analytics.speechCheckins}</p>
+                    <Mic className="w-4 h-4 text-cyan-600 mt-2" />
+                  </div>
+                  <div className="bg-purple-50 border border-purple-100 rounded-xl p-4">
+                    <p className="text-xs text-purple-700 mb-1">Unieke ICF codes</p>
+                    <p className="text-2xl font-bold text-purple-900">{analytics.uniqueIcfCodes}</p>
+                    <Code className="w-4 h-4 text-purple-600 mt-2" />
+                  </div>
+                  <div className="bg-green-50 border border-green-100 rounded-xl p-4">
+                    <p className="text-xs text-green-700 mb-1">ICF gesprekken</p>
+                    <p className="text-2xl font-bold text-green-900">{analytics.interviews}</p>
+                    <MessageSquare className="w-4 h-4 text-green-600 mt-2" />
+                  </div>
+                </div>
+
+                <div>
+                  <p className="font-lato text-gray-700 mb-2">Laatste patiëntinput uit spraak:</p>
+                  {analytics.recentPatientStatements.length === 0 ? (
+                    <p className="font-lato text-sm text-gray-500">Nog geen patiëntinput beschikbaar.</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {analytics.recentPatientStatements.map((item, index) => (
+                        <div key={`${item.timestamp}-${index}`} className="bg-slate-50 rounded-lg border border-slate-200 p-3">
+                          <p className="text-sm text-gray-900">{item.text}</p>
+                          <div className="mt-1">
+                            <Badge variant="outline" className="text-xs">
+                              {new Date(item.timestamp).toLocaleString("nl-NL")}
+                            </Badge>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>

@@ -66,6 +66,12 @@ export default function AlertSystem() {
 
   const unreadAlerts = alerts.filter(alert => !alert.read);
   const recentActivity = getRecentActivity();
+  const recentActivityStats = {
+    activityStarted: recentActivity.filter((e) => ["quest_started", "adl_step", "adl_complete", "checkin"].includes(e.type)).length,
+    skipped: recentActivity.filter((e) => e.type === "adl_complete" && e.data?.result === "skipped").length,
+    reminders: recentActivity.filter((e) => ["memory_view", "medication_prompt", "hydration_prompt", "safety_prompt"].includes(e.type)).length,
+    compass: recentActivity.filter((e) => e.type === "compass_choice").length,
+  };
 
   return (
     <div className="space-y-6">
@@ -145,7 +151,7 @@ export default function AlertSystem() {
             </div>
           ) : (
             <div className="space-y-3 max-h-96 overflow-y-auto">
-              {recentActivity.reverse().map((event, index) => (
+              {[...recentActivity].reverse().map((event, index) => (
                 <div key={index} className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl">
                   <div className={`w-2 h-2 rounded-full mt-2 ${
                     event.type === 'quest_started' ? 'bg-green-500' :
@@ -212,25 +218,25 @@ export default function AlertSystem() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="text-center">
               <p className="text-2xl font-bold text-green-600">
-                {recentActivity.filter(e => e.type === 'quest_started').length}
+                {recentActivityStats.activityStarted}
               </p>
               <p className="text-sm text-gray-600">Activiteiten Gestart</p>
             </div>
             <div className="text-center">
               <p className="text-2xl font-bold text-amber-600">
-                {recentActivity.filter(e => e.type === 'adl_complete' && e.data?.result === 'skipped').length}
+                {recentActivityStats.skipped}
               </p>
               <p className="text-sm text-gray-600">Overgeslagen</p>
             </div>
             <div className="text-center">
               <p className="text-2xl font-bold text-blue-600">
-                {recentActivity.filter(e => e.type === 'memory_view').length}
+                {recentActivityStats.reminders}
               </p>
               <p className="text-sm text-gray-600">Herinneringen</p>
             </div>
             <div className="text-center">
               <p className="text-2xl font-bold text-purple-600">
-                {recentActivity.filter(e => e.type === 'compass_choice').length}
+                {recentActivityStats.compass}
               </p>
               <p className="text-sm text-gray-600">Kompas Draaien</p>
             </div>
@@ -259,6 +265,12 @@ function getEventDescription(event) {
       return `Veiligheidswaarschuwing: ${event.data?.topic}`;
     case 'incident':
       return `Incident: ${event.data?.kind} (${event.data?.severity || 'onbekend'})`;
+    case 'checkin':
+      return event.data?.user_text
+        ? `Patiënt check-in: "${event.data.user_text}"`
+        : 'Patiënt check-in via spraak';
+    case 'adl_step':
+      return `ADL stap: ${event.data?.step_id || "onbekend"}`;
     default:
       return `${event.type} gebeurtenis`;
   }

@@ -6,6 +6,7 @@ import { CareEventBackend } from '../services/voiceAssistant';
 import { createOpenAISession } from "@/functions/createOpenAISession";
 import { analyzeConversationForICF } from "@/functions/analyzeConversationForICF";
 import { interpretIcfCodes } from "@/lib/icfInterpretation";
+import { User } from "@/entities/User";
 
 
 export default function RealtimeVoiceAssistant() {
@@ -15,6 +16,7 @@ export default function RealtimeVoiceAssistant() {
   const [isConnecting, setIsConnecting] = useState(false);
   const [currentResponse, setCurrentResponse] = useState("");
   const [, setLastDetectedIcfCodes] = useState([]);
+  const [currentUser, setCurrentUser] = useState(null);
   
   const peerConnection = useRef(null);
   const dataChannel = useRef(null);
@@ -22,6 +24,7 @@ export default function RealtimeVoiceAssistant() {
   const audioPlayer = useRef(null);
   const careEventBackend = useRef(new CareEventBackend());
   const lastProcessedUserInput = useRef("");
+  const sessionIdRef = useRef("");
 
   const log = (msg) => {
     console.log("[RealtimeVoice]", msg);
@@ -82,13 +85,16 @@ export default function RealtimeVoiceAssistant() {
 
     setLastDetectedIcfCodes(interpreted.interpreted_codes);
 
-    await careEventBackend.current.postEvent("realtime_user", {
+    await careEventBackend.current.postEvent(currentUser?.id || "realtime_user", {
       type: "checkin",
       icf_tags: interpreted.interpreted_codes,
       confidence,
+      session_id: sessionIdRef.current,
       data: {
         source: "voice_home",
         speaker: "user",
+        user_id: currentUser?.id || "realtime_user",
+        session_id: sessionIdRef.current,
         user_text: normalizedText,
         icf_reasons: reasons,
         detected_icf_codes: detectedCodes,
@@ -103,6 +109,7 @@ export default function RealtimeVoiceAssistant() {
   
   // Cleanup on component unmount
   useEffect(() => {
+    User.me().then(setCurrentUser).catch(() => setCurrentUser(null));
     return () => {
       if (peerConnection.current) {
         stopSession();
@@ -238,6 +245,7 @@ export default function RealtimeVoiceAssistant() {
 
   const createPeerConnection = async () => {
     if (peerConnection.current) return;
+    sessionIdRef.current = `voice_home_${Date.now()}`;
     
     setIsConnecting(true);
     setCaptions("");
@@ -389,6 +397,7 @@ export default function RealtimeVoiceAssistant() {
     setIsConnecting(false);
     setCaptions("");
     setCurrentResponse("");
+    sessionIdRef.current = "";
     log("🛑 Sessie gestopt");
   };
 

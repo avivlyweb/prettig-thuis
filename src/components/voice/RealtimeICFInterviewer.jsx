@@ -9,6 +9,7 @@ import { ICFCode } from "@/entities/ICFCode";
 import { ICFInterviewLog } from "@/entities/ICFInterviewLog";
 import { createOpenAISession } from "@/functions/createOpenAISession";
 import { analyzeConversationForICF } from "@/functions/analyzeConversationForICF";
+import { saveCareEvent } from "@/lib/careEvents";
 import {
   buildPatientSummary,
   buildProfessionalSummary,
@@ -54,11 +55,67 @@ export default function RealtimeICFInterviewer() {
   const isCleaningUp = useRef(false);
   const analysisTimeoutRef = useRef(null);
   const autoSwitchedRef = useRef(false);
+  const sessionIdRef = useRef("");
+  const lastProcessedPatientInputRef = useRef("");
 
   const log = useCallback((msg) => {
     console.log("[ICFInterviewer]", msg);
     setStatus(msg);
   }, []);
+
+  const extractUserText = useCallback((data) => {
+    if (typeof data?.transcript === "string" && data.transcript.trim()) {
+      return data.transcript.trim();
+    }
+    const item = data?.item;
+    if (!item || item.role !== "user") return "";
+    const content = Array.isArray(item.content) ? item.content : [];
+    for (const block of content) {
+      if (typeof block?.text === "string" && block.text.trim()) return block.text.trim();
+      if (typeof block?.transcript === "string" && block.transcript.trim()) return block.transcript.trim();
+    }
+    return "";
+  }, []);
+
+  const appendPatientTurn = useCallback((rawText) => {
+    const text = (rawText || "").trim();
+    if (!text) return;
+    if (lastProcessedPatientInputRef.current === text) return;
+    lastProcessedPatientInputRef.current = text;
+
+    const entry = {
+      timestamp: new Date().toISOString(),
+      speaker: "Patiënt",
+      text,
+      mode: MODE.PATIENT,
+    };
+
+    setConversationTranscript((prev) => [...prev, entry]);
+
+    // Mirror patient speech into care events for caregiver dashboards and daily analytics.
+    saveCareEvent({
+      user_id: user?.id || "demo_user",
+      session_id: sessionIdRef.current,
+      type: "checkin",
+      icf_tags: detectedICFCodesLive,
+      confidence: 0.6,
+      source: "icf_interviewer",
+      speaker: "user",
+      transcript: text,
+      text,
+      data: {
+        source: "icf_interviewer",
+        speaker: "user",
+        user_id: user?.id || "demo_user",
+        session_id: sessionIdRef.current,
+        user_text: text,
+        interpreted_icf_codes: detectedICFCodesLive,
+        timestamp: new Date().toISOString(),
+      },
+    }).catch((error) => {
+      console.warn("Could not save interviewer care event:", error);
+    });
+  }, [detectedICFCodesLive, user]);
 
   // Real-time ICF Analysis Function
   const analyzeConversationLive = useCallback(async () => {
@@ -227,6 +284,8 @@ export default function RealtimeICFInterviewer() {
       setCoverageLive(null);
       setNextGuidedQuestion("");
       autoSwitchedRef.current = false;
+      sessionIdRef.current = "";
+      lastProcessedPatientInputRef.current = "";
       log("Klaar om te beginnen");
     } finally {
       isCleaningUp.current = false;
@@ -405,19 +464,17 @@ Antwoord compact, klinisch, en direct bruikbaar voor besluitvorming.`;
           }
           break;
           
-        case 'conversation.item.created':
-          if (data.item?.content) {
-            const userText = data.item.content[0]?.text || data.item.content[0]?.transcript;
-            if (userText) {
-              setConversationTranscript(prev => [...prev, {
-                timestamp: new Date().toISOString(),
-                speaker: currentMode === MODE.PATIENT ? 'Patiënt' : 'Professional',
-                text: userText,
-                mode: currentMode
-              }]);
-            }
-          }
+        case 'conversation.item.input_audio_transcription.completed': {
+          const userText = extractUserText(data);
+          if (userText) appendPatientTurn(userText);
           break;
+        }
+
+        case 'conversation.item.created': {
+          const userText = extractUserText(data);
+          if (userText) appendPatientTurn(userText);
+          break;
+        }
           
         case 'response.done':
           log("Klaar om weer te luisteren");
@@ -449,7 +506,7 @@ Antwoord compact, klinisch, en direct bruikbaar voor besluitvorming.`;
     } catch (e) {
       console.error("Error parsing message:", e, event.data);
     }
-  }, [currentMode, sessionStart, log]);
+  }, [sessionStart, log, appendPatientTurn, extractUserText]);
 
   const sendSessionConfiguration = useCallback((mode = currentMode) => {
     if (!dataChannel.current || dataChannel.current.readyState !== 'open') {
@@ -522,6 +579,8 @@ Antwoord compact, klinisch, en direct bruikbaar voor besluitvorming.`;
   const createPeerConnection = useCallback(async () => {
     // Prevent creating a new connection if one already exists
     if (peerConnection.current || isCleaningUp.current) return;
+    sessionIdRef.current = `icf_interview_${Date.now()}`;
+    lastProcessedPatientInputRef.current = "";
     
     setIsConnecting(true);
     setCaptions("");

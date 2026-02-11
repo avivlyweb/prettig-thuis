@@ -51,6 +51,7 @@ export default function RealtimeVoiceAssistant2_0() {
   const audioPlayer = useRef(null);
   const careEventBackend = useRef(new CareEventBackend());
   const lastProcessedUserInput = useRef("");
+  const sessionIdRef = useRef("");
 
   useEffect(() => {
     loadUser();
@@ -187,13 +188,16 @@ export default function RealtimeVoiceAssistant2_0() {
       userProfile: user || {},
     });
 
-    await careEventBackend.current.postEvent("realtime_user", {
+    await careEventBackend.current.postEvent(user?.id || "realtime_user", {
       type: "checkin",
       icf_tags: interpreted.interpreted_codes,
       confidence,
+      session_id: sessionIdRef.current,
       data: {
         source: "talk_2_0",
         speaker: "user",
+        user_id: user?.id || "realtime_user",
+        session_id: sessionIdRef.current,
         user_text: normalizedText,
         icf_reasons: reasons,
         detected_icf_codes: detectedCodes,
@@ -232,6 +236,7 @@ export default function RealtimeVoiceAssistant2_0() {
     setCaptions("");
     setCurrentResponse("");
     setConversationHistory([]);
+    sessionIdRef.current = "";
     log("Klaar om te beginnen");
   }, []);
 
@@ -412,6 +417,7 @@ Reageer uitsluitend in het Nederlands.`,
 
   const createPeerConnection = async () => {
     if (peerConnection.current) return;
+    sessionIdRef.current = `talk_2_0_${Date.now()}`;
     
     setIsConnecting(true);
     setCaptions("");

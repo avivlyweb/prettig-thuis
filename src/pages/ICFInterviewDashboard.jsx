@@ -22,6 +22,7 @@ import {
 export default function ICFInterviewDashboard() {
   const [interviews, setInterviews] = useState([]);
   const [careEvents, setCareEvents] = useState([]);
+  const [currentUserId, setCurrentUserId] = useState("");
   const [loading, setLoading] = useState(true);
   const [expandedInterview, setExpandedInterview] = useState(null);
 
@@ -32,10 +33,24 @@ export default function ICFInterviewDashboard() {
   const loadData = async () => {
     try {
       const currentUser = await User.me().catch(() => null);
+      const resolvedUserId = currentUser?.id || "";
+      setCurrentUserId(resolvedUserId);
 
-      const interviewData = await ICFInterviewLog.list('-created_date');
-      setInterviews(interviewData);
-      const eventData = await listCareEvents({ limit: 1000, userId: currentUser?.id });
+      const interviewData = await ICFInterviewLog.list('-created_date', 1000);
+      const filteredInterviews = resolvedUserId
+        ? interviewData.filter((item) => !item.user_id || item.user_id === resolvedUserId || item.user_id === "demo_user")
+        : interviewData;
+      setInterviews(filteredInterviews);
+
+      let eventData = await listCareEvents({ limit: 2000, userId: resolvedUserId || undefined });
+      if (resolvedUserId && eventData.length === 0) {
+        const allEvents = await listCareEvents({ limit: 2000 });
+        eventData = allEvents.filter((item) =>
+          item.user_id === resolvedUserId
+          || item.user_id === "demo_user"
+          || item.data?.user_id === resolvedUserId
+        );
+      }
       setCareEvents(eventData);
     } catch (error) {
       console.error("Error loading interviews:", error);
@@ -65,6 +80,13 @@ export default function ICFInterviewDashboard() {
   const getPatientTurns = (transcript) =>
     transcript.filter((entry) => entry?.speaker === "Patiënt" && entry?.text);
 
+  const getEventPatientText = (event) =>
+    event?.text
+    || event?.data?.user_text
+    || event?.transcript
+    || event?.data?.transcript
+    || "";
+
   const getInterviewTimeRange = (interview) => {
     const start = new Date(interview.session_start).getTime();
     const end = interview.session_end ? new Date(interview.session_end).getTime() : start + 60 * 60 * 1000;
@@ -75,7 +97,13 @@ export default function ICFInterviewDashboard() {
     const { start, end } = getInterviewTimeRange(interview);
     return careEvents.filter((event) => {
       const ts = new Date(event.timestamp).getTime();
-      return ts >= start - (30 * 60 * 1000) && ts <= end + (30 * 60 * 1000);
+      const withinTime = ts >= start - (30 * 60 * 1000) && ts <= end + (30 * 60 * 1000);
+      if (!withinTime) return false;
+      if (!currentUserId) return true;
+      return event.user_id === currentUserId
+        || event.user_id === "demo_user"
+        || event.data?.user_id === currentUserId
+        || interview.user_id === event.user_id;
     });
   };
 
@@ -103,7 +131,26 @@ export default function ICFInterviewDashboard() {
   const dashboardData = useMemo(() => {
     const transcripts = interviews.map((i) => parseTranscript(i.conversation_transcript));
     const allPatientTurns = transcripts.flatMap((t) => getPatientTurns(t));
-    const patientTexts = allPatientTurns.map((t) => t.text);
+    const patientSpeechEvents = careEvents.filter((event) =>
+      event.type === "checkin" && (event.speaker === "user" || event.data?.speaker === "user")
+    );
+    const patientTurnsFromEvents = patientSpeechEvents
+      .map((event) => ({ text: getEventPatientText(event), timestamp: event.timestamp }))
+      .filter((item) => item.text);
+
+    const mergedPatientTurns = [];
+    const seenPatientTurnKeys = new Set();
+    for (const turn of [
+      ...allPatientTurns.map((item) => ({ text: item.text, timestamp: item.timestamp || "" })),
+      ...patientTurnsFromEvents,
+    ]) {
+      const key = `${turn.timestamp || ""}|${turn.text}`;
+      if (seenPatientTurnKeys.has(key)) continue;
+      seenPatientTurnKeys.add(key);
+      mergedPatientTurns.push(turn);
+    }
+
+    const patientTexts = mergedPatientTurns.map((t) => t.text);
 
     const detectedFromEvents = careEvents.flatMap((e) => e.data?.detected_icf_codes || []);
     const interpretedFromEvents = careEvents.flatMap((e) => e.data?.interpreted_icf_codes || e.icf_tags || []);
@@ -123,17 +170,14 @@ export default function ICFInterviewDashboard() {
     const interpretedCounts = makeCounts(allInterpretedCodes);
 
     const activityEvents = careEvents.filter((e) =>
-      ["quest_started", "adl_complete", "memory_view", "compass_choice"].includes(e.type)
+      ["quest_started", "adl_step", "adl_complete", "memory_view", "compass_choice"].includes(e.type)
     );
 
     const activityCounts = activityEvents.reduce((acc, e) => {
       acc[e.type] = (acc[e.type] || 0) + 1;
       return acc;
     }, {});
-
-    const patientCheckins = careEvents.filter((e) =>
-      e.type === "checkin" && (e.speaker === "user" || e.data?.speaker === "user")
-    );
+    const totalActivities = activityEvents.length;
 
     return {
       totalInterviews: interviews.length,
@@ -141,12 +185,13 @@ export default function ICFInterviewDashboard() {
       avgDuration: interviews.length > 0
         ? interviews.reduce((sum, i) => sum + (i.session_duration_minutes || 0), 0) / interviews.length
         : 0,
-      patientTurnCount: allPatientTurns.length,
-      patientCheckinCount: patientCheckins.length,
+      patientTurnCount: mergedPatientTurns.length,
+      patientCheckinCount: patientSpeechEvents.length,
       topDetectedCodes: Object.entries(detectedCounts).sort(([, a], [, b]) => b - a).slice(0, 8),
       topInterpretedCodes: Object.entries(interpretedCounts).sort(([, a], [, b]) => b - a).slice(0, 8),
       topKeywords: extractTopKeywords(patientTexts, 10),
       activityCounts,
+      totalActivities,
     };
   }, [interviews, careEvents]);
 
@@ -218,9 +263,7 @@ export default function ICFInterviewDashboard() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600 mb-1">Activiteiten</p>
-                  <p className="text-3xl font-bold text-gray-900">
-                    {(dashboardData.activityCounts.quest_started || 0) + (dashboardData.activityCounts.adl_complete || 0)}
-                  </p>
+                  <p className="text-3xl font-bold text-gray-900">{dashboardData.totalActivities}</p>
                 </div>
                 <ClipboardList className="w-12 h-12 text-amber-600" />
               </div>
@@ -343,6 +386,15 @@ export default function ICFInterviewDashboard() {
               const transcript = parseTranscript(interview.conversation_transcript);
               const patientTurns = getPatientTurns(transcript);
               const relatedEvents = getRelatedEvents(interview);
+              const patientTurnsFromEvents = relatedEvents
+                .filter((event) => event.type === "checkin" && (event.speaker === "user" || event.data?.speaker === "user"))
+                .map((event) => ({
+                  timestamp: event.timestamp,
+                  speaker: "Patiënt",
+                  text: getEventPatientText(event),
+                }))
+                .filter((item) => item.text);
+              const combinedPatientTurns = [...patientTurns, ...patientTurnsFromEvents];
               const detectedFromEventsForInterview = relatedEvents.flatMap((event) => event.data?.detected_icf_codes || []);
               const interpretedFromEventsForInterview = relatedEvents.flatMap((event) => event.data?.interpreted_icf_codes || event.icf_tags || []);
               const detectedInterviewCodes = [
@@ -384,7 +436,7 @@ export default function ICFInterviewDashboard() {
                           </Badge>
                           <Badge variant="outline" className="bg-green-50">
                             <MessageSquare className="w-3 h-3 mr-1" />
-                            {patientTurns.length} patiënt uitingen
+                            {combinedPatientTurns.length} patiënt uitingen
                           </Badge>
                           <Badge variant="outline" className="bg-amber-50 text-amber-800">
                             <ClipboardList className="w-3 h-3 mr-1" />
@@ -474,11 +526,11 @@ export default function ICFInterviewDashboard() {
                       )}
 
                       {/* Patient transcript only */}
-                      {patientTurns.length > 0 && (
+                      {combinedPatientTurns.length > 0 && (
                         <div>
                           <h4 className="font-semibold text-gray-900 mb-3">Patiënt Gespreksverloop:</h4>
                           <div className="bg-slate-50 rounded-xl p-4 max-h-96 overflow-y-auto space-y-3">
-                            {patientTurns.map((entry, index) => (
+                            {combinedPatientTurns.map((entry, index) => (
                               <div 
                                 key={index} 
                                 className="p-3 rounded-lg bg-white border border-gray-200"

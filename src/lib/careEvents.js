@@ -31,9 +31,11 @@ function entity(name) {
 }
 
 function normalizeCareEvent(item) {
+  const eventText = item.text || item.data?.user_text || item.data?.response_text || item.data?.transcript || "";
   return {
     id: item.id || item._id || `${item.user_id || "user"}-${item.timestamp || Date.now()}`,
     user_id: item.user_id || "unknown_user",
+    session_id: item.session_id || item.data?.session_id || "",
     type: item.type || "checkin",
     icf_tags: Array.isArray(item.icf_tags) ? item.icf_tags : [],
     confidence: typeof item.confidence === "number" ? item.confidence : 0,
@@ -41,8 +43,28 @@ function normalizeCareEvent(item) {
     source: item.source || item.data?.source || "unknown",
     speaker: item.speaker || item.data?.speaker || "unknown",
     transcript: item.transcript || item.data?.transcript || "",
+    text: eventText,
     timestamp: item.timestamp || item.created_date || new Date().toISOString(),
   };
+}
+
+export function resolveUserId(primaryUserId, fallbackData = {}) {
+  const candidates = [
+    primaryUserId,
+    fallbackData.user_id,
+    fallbackData.data?.user_id,
+    fallbackData.profile?.id,
+  ];
+
+  for (const value of candidates) {
+    if (!value) continue;
+    const normalized = String(value).trim();
+    if (!normalized) continue;
+    if (normalized === "realtime_user" || normalized === "demo_user" || normalized === "unknown_user") continue;
+    return normalized;
+  }
+
+  return String(primaryUserId || fallbackData.user_id || "unknown_user");
 }
 
 function normalizeAlert(item) {

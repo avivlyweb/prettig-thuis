@@ -1,6 +1,7 @@
 import { InvokeLLM } from "@/integrations/Core";
 import {
   listCareEvents,
+  resolveUserId,
   saveCareEvent,
   saveCaregiverAlert,
 } from "@/lib/careEvents";
@@ -131,16 +132,18 @@ export class PrettigThuisRealtimeClient {
 export class CareEventBackend {
   async postEvent(userId, ev) {
     try {
+      const resolvedUserId = resolveUserId(userId, ev);
       await saveCareEvent({
-        user_id: userId,
+        user_id: resolvedUserId,
         ...ev,
+        session_id: ev.session_id || ev.data?.session_id || "",
         timestamp: ev.timestamp || new Date().toISOString(),
       });
 
-      console.log(`[CareEvent] ${userId}:`, ev);
+      console.log(`[CareEvent] ${resolvedUserId}:`, ev);
 
       // Check for alert conditions
-      await this.checkAlertConditions(userId);
+      await this.checkAlertConditions(resolvedUserId);
     } catch (error) {
       console.error("Error posting care event:", error);
     }
