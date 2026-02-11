@@ -1,135 +1,184 @@
 # Prettig Thuis
 
-Prettig Thuis is a React + Vite web app for home support workflows, focused on older adults and caregivers.  
-The app includes routines, memory/album experiences, voice assistants, caregiver dashboards, and ICF-related admin tooling.
+A Dutch, voice-first home support platform for older adults and caregivers, with real-time ICF signal detection and caregiver-facing insights.
 
-## Tech Stack
+![React](https://img.shields.io/badge/React-18-20232A?logo=react)
+![Vite](https://img.shields.io/badge/Vite-6-646CFF?logo=vite)
+![Base44](https://img.shields.io/badge/Base44-SDK%20%2B%20Functions-0B7285)
+![Tailwind](https://img.shields.io/badge/TailwindCSS-3-06B6D4?logo=tailwindcss)
 
-- React 18
-- Vite 6
-- Tailwind CSS
-- Base44 SDK (`@base44/sdk`) + Base44 functions (Deno runtime in `functions/`)
-- Radix UI components
+## What This App Does
 
-## Main Features
+`Prettig Thuis` helps older adults with daily life and helps caregivers understand what is actually happening, based on real interactions.
 
-- Daily routines and activity guidance (`Routines`, `Routines2_0`)
-- Voice assistants (`VoiceHome`, `Talk2_0`, `Gesprekspartner`)
-- Memory content flows (`MemoryAlbum`, `GoudenMomenten`, `Videos`)
-- Caregiver dashboard (`Caregiver`)
-- ICF workflow pages and admin uploads:
-- `ICFUpload`
-- `ICFInterviewDashboard`
-- `AdminKnowledgeBaseUpload`
-- `AdminKNGFUpload`
-- `AdminICFCategoriesUpload`
-- `AdminFallPreventionUpload`
-- `AdminTrainingDatasetUpload`
+Core outcomes:
+- Real-time voice conversations with the older adult in Dutch.
+- Detection and interpretation of ICF-related signals from natural patient speech.
+- Structured care events for daily support workflows (ADL, reminders, incidents, check-ins).
+- Caregiver dashboards that show patient-driven insights instead of placeholder stats.
 
-## Project Structure
+## Product Flow
 
-- `src/`: frontend app (pages, components, layout, API clients)
-- `functions/`: server-side Base44/Deno functions
-- `src/pages.config.js`: route/page registration
-- `src/api/base44Client.js`: Base44 client configuration
+```mermaid
+flowchart LR
+  A[Older adult voice/chat input] --> B[Realtime AI assistant]
+  B --> C[ICF detection function]
+  C --> D[ICF interpretation layer]
+  D --> E[CareEvent stream]
+  E --> F[Caregiver dashboard]
+  E --> G[Interview analytics dashboard]
+  B --> H[ICF interviewer session log]
+  H --> G
+```
+
+## Why It Is Different
+
+Most care dashboards show generic activity counts. `Prettig Thuis` is built to tie dashboard insights back to what the patient actually says.
+
+- Voice check-ins are stored with `user_id` and `session_id`.
+- Patient utterances can be linked to detected and interpreted ICF codes.
+- Caregiver views combine interview transcripts and real-time voice check-ins.
+
+## Main App Areas
+
+| Area | Purpose | Route/Page |
+|---|---|---|
+| Home | Main entry and navigation | `Home` |
+| Voice assistant | Realtime Dutch voice support for routines | `VoiceHome`, `Talk2_0` |
+| ICF interviewer | Structured patient interview + clinician handoff | `Gesprekspartner` |
+| ICF analytics | Conversation analysis dashboard | `ICFInterviewDashboard` |
+| Caregiver dashboard | Alerts, activity stream, daily summary, analytics | `Caregiver` |
+| Daily routines | Task and ADL guidance | `Routines`, `Routines2_0` |
+| Memory experiences | Album and memory content | `MemoryAlbum`, `GoudenMomenten`, `Videos` |
+| Admin data tools | Upload ICF/knowledge/risk/training assets | `Admin*` pages |
+
+## Realtime ICF Pipeline
+
+The app distinguishes between:
+
+- `detected_icf_codes`: raw codes inferred from speech.
+- `interpreted_icf_codes`: context-adjusted output using local reasoning rules.
+
+This separation is visible in the ICF dashboard and helps clinical review.
+
+Example care event payload (simplified):
+
+```json
+{
+  "user_id": "user_123",
+  "session_id": "voice_home_1739360000",
+  "type": "checkin",
+  "source": "voice_home",
+  "speaker": "user",
+  "icf_tags": ["d450", "b152"],
+  "confidence": 0.74,
+  "data": {
+    "user_text": "Lopen gaat moeilijk en ik ben bang om te vallen",
+    "detected_icf_codes": ["d450", "b152"],
+    "interpreted_icf_codes": ["d450", "b152", "b755"]
+  }
+}
+```
+
+## Caregiver Insight Flow
+
+```mermaid
+sequenceDiagram
+  participant P as Patient
+  participant V as Voice/Interview Assistant
+  participant CE as CareEvent Store
+  participant CG as Caregiver Dashboard
+
+  P->>V: Natural speech (daily activity, symptoms, context)
+  V->>CE: Save check-in + ICF metadata
+  V->>CE: Save ADL/reminder/incident events
+  CE->>CG: Load recent events + interpreted ICF signals
+  CG->>CG: Compute daily summary + trends + patient statements
+```
+
+## How To Use (End-to-End)
+
+1. Start a patient voice session in `VoiceHome` or `Talk2_0`.
+2. Let the patient talk naturally about daily activities and difficulties.
+3. Open `Gesprekspartner` for focused ICF interviewing when needed.
+4. Review:
+- `Caregiver`: alerts, recent activity, patient check-ins, ICF-linked stats.
+- `ICFInterviewDashboard`: transcript evidence, detected vs interpreted codes, linked events.
+5. Use Admin upload pages to update knowledge assets when clinical content evolves.
 
 ## Local Development
 
-### 1. Install dependencies
+### 1) Install
 
 ```bash
 npm ci
 ```
 
-### 2. Run the app
+### 2) Run
 
 ```bash
 npm run dev
 ```
 
-### 3. Build
+### 3) Build
 
 ```bash
 npm run build
 ```
 
-Note: this repository currently includes legacy Base44 import paths (`@/entities/*`, `@/functions/*`, `@/integrations/*`).  
-If you hit build errors related to these imports, build with:
+If you hit legacy import compatibility issues, use:
 
 ```bash
 BASE44_LEGACY_SDK_IMPORTS=true npm run build
 ```
 
-## Scripts
+### 4) Quality checks
 
-- `npm run dev`: start dev server
-- `npm run build`: production build
-- `npm run preview`: preview production build
-- `npm run lint`: eslint
-- `npm run lint:fix`: eslint autofix
-- `npm run typecheck`: TypeScript check over configured JS/JSX files
+```bash
+npm run lint
+npm run typecheck
+```
 
-## Environment / Runtime Parameters
+## Project Structure
 
-The app reads Base44 runtime parameters via URL/query/local storage fallback:
+- `src/`: frontend pages, components, service integrations.
+- `functions/`: server-side Base44 functions (ICF analysis, uploads, OpenAI session helpers).
+- `src/lib/careEvents.js`: shared event persistence + normalization (backend-first, local fallback).
+- `src/lib/icfInterpretation.js`: local interpretation layer for context-aware ICF scoring.
+- `src/pages/ICFInterviewDashboard.jsx`: patient speech + ICF analytics UI.
+- `src/components/caregiver/AlertSystem.jsx`: caregiver activity feed and daily summary.
 
-- `VITE_BASE44_APP_ID`
-- `VITE_BASE44_BACKEND_URL`
-- optional URL params like `app_id`, `server_url`, `access_token`, `functions_version`
+## Key Knowledge/Policy Assets
 
-See:
-- `src/lib/app-params.js`
-- `src/api/base44Client.js`
+Current knowledge-oriented files in repository root include:
 
-## Functions
+- `conversation_policy.json`
+- `icf_question_templates.json`
+- `intervention_retrieval_logic.json`
+- `structured_context_factors_schema.json`
+- `icf_fac_master_knowledge_base.json`
+- `icf_semantic_integration_config.json`
+- `icf_kngf_richtlijn2025_integrated_knowledge_base.json`
 
-Server functions are under `functions/` and include:
+These are used as structured semantic memory for question behavior, ICF interpretation, FAC estimation, and intervention mapping.
 
-- OpenAI session/audio helpers (`createOpenAISession.ts`, `generatePromptAudio.ts`)
-- ICF ingestion and analysis (`ingestICFCodes.ts`, `analyzeConversationForICF.ts`, etc.)
-- Admin upload pipelines (`uploadICFTrainingDataset.ts`, `uploadICFKnowledgeBase.ts`, etc.)
+## Reliability & Safety Notes
 
-## Recent Updates (2026)
+- Care events are persisted through a shared service layer and normalized for dashboard consistency.
+- Voice-origin events include `user_id` and `session_id` to reduce attribution errors.
+- `functions/uploadICFTrainingDataset.ts` uses a non-destructive replacement strategy:
+1. validate incoming dataset,
+2. create replacement rows,
+3. delete old rows only after successful creation,
+4. rollback newly created rows on failure.
 
-### Caregiver data flow
+## Recent Improvements (2026)
 
-- Care events and caregiver alerts are now persisted through a shared backend-first service in `src/lib/careEvents.js` (with local fallback).
-- `Caregiver`/`AlertSystem` reads from this shared service instead of only direct browser-local storage.
-- Voice-origin events now carry stable `user_id` + `session_id` so caregiver analytics resolves to the correct user instead of fallback IDs.
-- Daily summary tiles now include speech check-ins and ADL step events, not only quest placeholders.
+- Realtime voice and interviewer flows now log patient check-ins in a dashboard-friendly format.
+- Caregiver dashboard analytics tab now shows real metrics and recent patient statements.
+- ICF dashboard now merges transcript-based and event-based patient input for stronger coverage.
+- Daily summary cards now include speech and ADL activity, not only quest placeholders.
 
-### Voice to ICF improvements
+---
 
-- `VoiceHome` and `Talk2_0` now run ICF detection on user speech turns and store structured check-ins.
-- Each check-in now stores both:
-- `detected_icf_codes` (raw from speech analysis)
-- `interpreted_icf_codes` (context-adjusted output)
-- Speech deduping is applied to avoid duplicate event logging from repeated realtime events.
-
-### ICF interpretation layer
-
-- Added `src/lib/icfInterpretation.js`.
-- This layer refines detected ICF codes with contextual priors (frailty indicators + keyword-based indicators from patient text).
-- Interpreted results include scores and evidence metadata.
-
-### Gesprekken Analyse Dashboard
-
-- `ICFInterviewDashboard` is now patient-data driven.
-- Insights are built from real patient utterances and related activity events.
-- Patient utterance metrics now combine both interview transcripts and realtime voice check-ins from care events.
-- Dashboard shows:
-- detected vs interpreted ICF code distributions
-- patient-only transcript insights
-- linked activity events around interview windows
-- per-event detection/interpretation details when available
-
-### Data-safety update: ICF training dataset replacement
-
-`functions/uploadICFTrainingDataset.ts` now uses a non-destructive replacement flow:
-
-1. Validate the entire incoming dataset first.
-2. Create the full replacement dataset.
-3. Delete old records only after replacement creation succeeds.
-4. Roll back newly created rows if creation fails.
-
-This prevents production data from being wiped on partial upload failures.
+If you want, this README can be expanded further with real screenshots/GIFs from your current UI to create a true product landing page on GitHub.
