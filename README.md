@@ -89,6 +89,37 @@ Server functions are under `functions/` and include:
 - ICF ingestion and analysis (`ingestICFCodes.ts`, `analyzeConversationForICF.ts`, etc.)
 - Admin upload pipelines (`uploadICFTrainingDataset.ts`, `uploadICFKnowledgeBase.ts`, etc.)
 
+## Recent Updates (2026)
+
+### Caregiver data flow
+
+- Care events and caregiver alerts are now persisted through a shared backend-first service in `src/lib/careEvents.js` (with local fallback).
+- `Caregiver`/`AlertSystem` reads from this shared service instead of only direct browser-local storage.
+
+### Voice to ICF improvements
+
+- `VoiceHome` and `Talk2_0` now run ICF detection on user speech turns and store structured check-ins.
+- Each check-in now stores both:
+- `detected_icf_codes` (raw from speech analysis)
+- `interpreted_icf_codes` (context-adjusted output)
+- Speech deduping is applied to avoid duplicate event logging from repeated realtime events.
+
+### ICF interpretation layer
+
+- Added `src/lib/icfInterpretation.js`.
+- This layer refines detected ICF codes with contextual priors (frailty indicators + keyword-based indicators from patient text).
+- Interpreted results include scores and evidence metadata.
+
+### Gesprekken Analyse Dashboard
+
+- `ICFInterviewDashboard` is now patient-data driven.
+- Insights are built from real patient utterances and related activity events.
+- Dashboard shows:
+- detected vs interpreted ICF code distributions
+- patient-only transcript insights
+- linked activity events around interview windows
+- per-event detection/interpretation details when available
+
 ### Data-safety update: ICF training dataset replacement
 
 `functions/uploadICFTrainingDataset.ts` now uses a non-destructive replacement flow:
