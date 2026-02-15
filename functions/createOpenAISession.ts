@@ -4,9 +4,6 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const timeout = (ms: number) =>
-  new Promise((_, reject) => setTimeout(() => reject(new Error(`Timeout after ${ms}ms`)), ms));
-
 Deno.serve(async (req) => {
   // This is needed if you're planning to invoke your function from a browser.
   if (req.method === "OPTIONS") {
@@ -33,28 +30,29 @@ Deno.serve(async (req) => {
 
   try {
     console.log("Requesting ephemeral token from OpenAI...");
-    const response = await Promise.race([
-      fetch("https://api.openai.com/v1/realtime/client_secrets", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${OPENAI_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        signal: AbortSignal.timeout(15000),
-        body: JSON.stringify({
-          session: {
-            type: "realtime",
-            model: realtimeModel,
-            audio: {
-              output: {
-                voice: realtimeVoice,
-              },
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort("request_timeout"), 12000);
+
+    const response = await fetch("https://api.openai.com/v1/realtime/client_secrets", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${OPENAI_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      signal: controller.signal,
+      body: JSON.stringify({
+        session: {
+          type: "realtime",
+          model: realtimeModel,
+          audio: {
+            output: {
+              voice: realtimeVoice,
             },
           },
-        }),
+        },
       }),
-      timeout(16000),
-    ]) as Response;
+    });
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
         const errorText = await response.text();
@@ -74,6 +72,13 @@ Deno.serve(async (req) => {
     });
 
   } catch (error) {
+    if (String(error?.name || "").toLowerCase().includes("abort")) {
+      console.error("Error creating OpenAI session: upstream timeout");
+      return new Response(JSON.stringify({ error: "OpenAI token request timed out" }), {
+        status: 504,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
     console.error("Error creating OpenAI session:", error.message);
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
