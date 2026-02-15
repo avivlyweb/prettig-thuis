@@ -13,6 +13,20 @@ metadata:
 
 Every interface in Prettig Thuis must be **safe, calm, and clear** for older adults with mild-to-moderate dementia. Design choices are clinical decisions — confusing UI causes real distress.
 
+## When to Use This Skill vs. `frontend-design`
+
+This app has TWO audiences with opposite design needs:
+
+| Audience | Use This Skill | Use `frontend-design` Skill |
+|---|---|---|
+| **Patient-facing** (Voice, Routines, Memory) | YES — dementia-friendly rules are mandatory | NO — bold/surprising design causes distress |
+| **Caregiver dashboard** | YES for layout/data patterns | Can layer on for visual polish |
+| **Admin tools** (uploads, data management) | Optional | YES — these are power-user tools |
+| **Landing page / marketing** | NO | YES — make it memorable and distinctive |
+| **GitHub README / docs** | NO | YES — creative presentation welcome |
+
+CRITICAL: When building patient-facing interfaces, the `frontend-design` skill's principles of "asymmetry", "surprise", "unexpected layouts", and "bold maximalism" MUST be overridden by the dementia-friendly rules below. Patient safety always wins over aesthetics.
+
 ## Instructions
 
 ### Step 1: Identify the Component Type
