@@ -27,8 +27,8 @@ Deno.serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "gpt-realtime",
-        voice: "cedar",
+        model: "gpt-4o-realtime-preview-2024-12-17",
+        voice: "alloy",
       }),
     });
 
