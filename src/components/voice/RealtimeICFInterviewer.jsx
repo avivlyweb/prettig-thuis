@@ -523,6 +523,7 @@ Antwoord compact, klinisch, en direct bruikbaar voor besluitvorming.`;
     const sessionConfig = {
       type: "session.update",
       session: {
+        type: "realtime",
         instructions,
         voice,
         input_audio_format: "pcm16",
@@ -596,11 +597,12 @@ Antwoord compact, klinisch, en direct bruikbaar voor besluitvorming.`;
       log("Sessie token aanvragen...");
       const response = await createOpenAISession();
 
-      if (response.error || !response.data?.client_secret?.value) {
+      const ephemeralKey = response?.data?.value || response?.data?.client_secret?.value;
+      if (response.error || !ephemeralKey) {
         throw new Error(`Sessie token fout: ${response.error?.message || 'Unknown error'}`);
       }
       
-      const EPHEMERAL_KEY = response.data.client_secret.value;
+      const EPHEMERAL_KEY = ephemeralKey;
       
       log("WebRTC verbinding opstarten...");
       const pc = new RTCPeerConnection();
@@ -678,7 +680,7 @@ Antwoord compact, klinisch, en direct bruikbaar voor besluitvorming.`;
         throw new Error("Peer connection was closed before setting remote description");
       }
       
-      const sdpResponse = await fetch("https://api.openai.com/v1/realtime?model=gpt-realtime", {
+      const sdpResponse = await fetch("https://api.openai.com/v1/realtime/calls", {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${EPHEMERAL_KEY}`,

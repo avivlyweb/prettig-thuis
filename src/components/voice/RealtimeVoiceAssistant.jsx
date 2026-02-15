@@ -208,6 +208,7 @@ export default function RealtimeVoiceAssistant() {
     const sessionConfig = {
       type: "session.update",
       session: {
+        type: "realtime",
         instructions: `Je bent een vriendelijke Nederlandse spraakassistent genaamd Prettig Thuis. 
           Je helpt ouderen met lichte dementie bij dagelijkse routines. 
           
@@ -256,11 +257,12 @@ export default function RealtimeVoiceAssistant() {
       log("Sessie token aanvragen...");
       const { data: sessionData, error } = await createOpenAISession();
 
-      if (error || !sessionData?.client_secret?.value) {
+      const ephemeralKey = sessionData?.value || sessionData?.client_secret?.value;
+      if (error || !ephemeralKey) {
           throw new Error(error?.message || "Kon geen sessie token ontvangen van de backend.");
       }
       
-      const EPHEMERAL_KEY = sessionData.client_secret.value;
+      const EPHEMERAL_KEY = ephemeralKey;
       
       // Step 2: Create WebRTC peer connection
       log("WebRTC verbinding opstarten...");
@@ -331,7 +333,7 @@ export default function RealtimeVoiceAssistant() {
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
       
-      const sdpResponse = await fetch("https://api.openai.com/v1/realtime?model=gpt-realtime", {
+      const sdpResponse = await fetch("https://api.openai.com/v1/realtime/calls", {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${EPHEMERAL_KEY}`,

@@ -30,17 +30,23 @@ Deno.serve(async (req) => {
 
   try {
     console.log("Requesting ephemeral token from OpenAI...");
-    const response = await fetch("https://api.openai.com/v1/realtime/sessions", {
+    const response = await fetch("https://api.openai.com/v1/realtime/client_secrets", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${OPENAI_API_KEY}`,
-        "OpenAI-Beta": "realtime=v1",
         "Content-Type": "application/json",
       },
       signal: AbortSignal.timeout(15000),
       body: JSON.stringify({
-        model: realtimeModel,
-        voice: realtimeVoice,
+        session: {
+          type: "realtime",
+          model: realtimeModel,
+          audio: {
+            output: {
+              voice: realtimeVoice,
+            },
+          },
+        },
       }),
     });
 
@@ -51,9 +57,12 @@ Deno.serve(async (req) => {
     }
 
     const data = await response.json();
+    const normalizedData = data?.value
+      ? { ...data, client_secret: { value: data.value } }
+      : data;
     console.log("Successfully received ephemeral token.");
 
-    return new Response(JSON.stringify(data), {
+    return new Response(JSON.stringify(normalizedData), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });

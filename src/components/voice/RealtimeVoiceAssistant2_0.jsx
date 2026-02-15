@@ -371,6 +371,7 @@ export default function RealtimeVoiceAssistant2_0() {
     const sessionConfig = {
       type: "session.update",
       session: {
+        type: "realtime",
         instructions: `Je bent een kalme en geduldige Nederlandse spraakassistent, genaamd Prettig Thuis. Je rol is om ${user?.display_name || 'de gebruiker'} met lichte dementie te helpen met hun dagelijkse routines en om hen gerust te stellen.
 
 HUIDIGE CONTEXT:
@@ -429,12 +430,13 @@ Reageer uitsluitend in het Nederlands.`,
       const response = await createOpenAISession();
       console.log("Full createOpenAISession response:", response);
 
-      if (response.error || !response.data?.client_secret?.value) {
+      const ephemeralKey = response?.data?.value || response?.data?.client_secret?.value;
+      if (response.error || !ephemeralKey) {
           const errorMsg = getErrorMessage(response.error || response);
           throw new Error(`Sessie token fout: ${errorMsg}`);
       }
       
-      const EPHEMERAL_KEY = response.data.client_secret.value;
+      const EPHEMERAL_KEY = ephemeralKey;
       
       log("WebRTC verbinding opstarten...");
       const pc = new RTCPeerConnection();
@@ -500,7 +502,7 @@ Reageer uitsluitend in het Nederlands.`,
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
       
-      const sdpResponse = await fetch("https://api.openai.com/v1/realtime?model=gpt-realtime", {
+      const sdpResponse = await fetch("https://api.openai.com/v1/realtime/calls", {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${EPHEMERAL_KEY}`,
