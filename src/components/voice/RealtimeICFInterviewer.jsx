@@ -1,3 +1,4 @@
+
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -593,16 +594,13 @@ Antwoord compact, klinisch, en direct bruikbaar voor besluitvorming.`;
 
     try {
       log("Sessie token aanvragen...");
-      const response = await createOpenAISession({});
+      const response = await createOpenAISession();
 
-      // In Platform V2, response.data contains the actual data
-      const sessionData = response.data;
-      
-      if (!sessionData?.client_secret?.value) {
-        throw new Error("Kon geen sessie token ontvangen van de backend.");
+      if (response.error || !response.data?.client_secret?.value) {
+        throw new Error(`Sessie token fout: ${response.error?.message || 'Unknown error'}`);
       }
       
-      const EPHEMERAL_KEY = sessionData.client_secret.value;
+      const EPHEMERAL_KEY = response.data.client_secret.value;
       
       log("WebRTC verbinding opstarten...");
       const pc = new RTCPeerConnection();

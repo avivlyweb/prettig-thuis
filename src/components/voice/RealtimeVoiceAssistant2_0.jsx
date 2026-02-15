@@ -426,17 +426,15 @@ Reageer uitsluitend in het Nederlands.`,
     
     try {
       log("Sessie token aanvragen...");
-      const response = await createOpenAISession({});
+      const response = await createOpenAISession();
       console.log("Full createOpenAISession response:", response);
 
-      // In Platform V2, response.data contains the actual data
-      const sessionData = response.data;
-      
-      if (!sessionData?.client_secret?.value) {
-          throw new Error("Kon geen sessie token ontvangen van de backend.");
+      if (response.error || !response.data?.client_secret?.value) {
+          const errorMsg = getErrorMessage(response.error || response);
+          throw new Error(`Sessie token fout: ${errorMsg}`);
       }
       
-      const EPHEMERAL_KEY = sessionData.client_secret.value;
+      const EPHEMERAL_KEY = response.data.client_secret.value;
       
       log("WebRTC verbinding opstarten...");
       const pc = new RTCPeerConnection();
