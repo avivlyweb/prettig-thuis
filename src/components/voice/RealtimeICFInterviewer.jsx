@@ -595,11 +595,14 @@ Antwoord compact, klinisch, en direct bruikbaar voor besluitvorming.`;
       log("Sessie token aanvragen...");
       const response = await createOpenAISession({});
 
-      if (response.error || !response.data?.client_secret?.value) {
-        throw new Error(`Sessie token fout: ${response.error?.message || 'Unknown error'}`);
+      // In Platform V2, response.data contains the actual data
+      const sessionData = response.data;
+      
+      if (!sessionData?.client_secret?.value) {
+        throw new Error("Kon geen sessie token ontvangen van de backend.");
       }
       
-      const EPHEMERAL_KEY = response.data.client_secret.value;
+      const EPHEMERAL_KEY = sessionData.client_secret.value;
       
       log("WebRTC verbinding opstarten...");
       const pc = new RTCPeerConnection();

@@ -255,10 +255,12 @@ export default function RealtimeVoiceAssistant() {
       // Step 1: Get ephemeral token from our OWN backend function
       log("Sessie token aanvragen...");
       const response = await createOpenAISession({});
-      const { data: sessionData, error } = response;
+      
+      // In Platform V2, response.data contains the actual data
+      const sessionData = response.data;
 
-      if (error || !sessionData?.client_secret?.value) {
-          throw new Error(error?.message || "Kon geen sessie token ontvangen van de backend.");
+      if (!sessionData?.client_secret?.value) {
+          throw new Error("Kon geen sessie token ontvangen van de backend.");
       }
       
       const EPHEMERAL_KEY = sessionData.client_secret.value;
