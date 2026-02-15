@@ -4,6 +4,9 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const timeout = (ms: number) =>
+  new Promise((_, reject) => setTimeout(() => reject(new Error(`Timeout after ${ms}ms`)), ms));
+
 Deno.serve(async (req) => {
   // This is needed if you're planning to invoke your function from a browser.
   if (req.method === "OPTIONS") {
@@ -30,25 +33,28 @@ Deno.serve(async (req) => {
 
   try {
     console.log("Requesting ephemeral token from OpenAI...");
-    const response = await fetch("https://api.openai.com/v1/realtime/client_secrets", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${OPENAI_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      signal: AbortSignal.timeout(15000),
-      body: JSON.stringify({
-        session: {
-          type: "realtime",
-          model: realtimeModel,
-          audio: {
-            output: {
-              voice: realtimeVoice,
+    const response = await Promise.race([
+      fetch("https://api.openai.com/v1/realtime/client_secrets", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${OPENAI_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        signal: AbortSignal.timeout(15000),
+        body: JSON.stringify({
+          session: {
+            type: "realtime",
+            model: realtimeModel,
+            audio: {
+              output: {
+                voice: realtimeVoice,
+              },
             },
           },
-        },
+        }),
       }),
-    });
+      timeout(16000),
+    ]) as Response;
 
     if (!response.ok) {
         const errorText = await response.text();
