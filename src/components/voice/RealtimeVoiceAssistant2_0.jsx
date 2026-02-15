@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Mic, MicOff, Volume2, MessageSquare, Heart, RefreshCw, CheckCircle, Loader } from 'lucide-react';
 import { CareEventBackend } from '../services/voiceAssistant';
-import { createOpenAISession } from "@/functions/createOpenAISession";
+import { base44 } from '@/api/base44Client';
 import { analyzeConversationForICF } from "@/functions/analyzeConversationForICF";
 import { interpretIcfCodes } from "@/lib/icfInterpretation";
 import { User } from "@/entities/User";
@@ -426,7 +426,7 @@ Reageer uitsluitend in het Nederlands.`,
     
     try {
       log("Sessie token aanvragen...");
-      const response = await createOpenAISession();
+      const response = await base44.functions.invoke('createOpenAISession');
       console.log("Full createOpenAISession response:", response);
 
       if (response.error || !response.data?.client_secret?.value) {

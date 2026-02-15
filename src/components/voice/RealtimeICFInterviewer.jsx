@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -7,7 +6,7 @@ import { Mic, MicOff, Volume2, UserRound, Stethoscope, RefreshCw, CheckCircle, L
 import { User } from "@/entities/User";
 import { ICFCode } from "@/entities/ICFCode";
 import { ICFInterviewLog } from "@/entities/ICFInterviewLog";
-import { createOpenAISession } from "@/functions/createOpenAISession";
+import { base44 } from '@/api/base44Client';
 import { analyzeConversationForICF } from "@/functions/analyzeConversationForICF";
 import { saveCareEvent } from "@/lib/careEvents";
 import {
@@ -594,7 +593,7 @@ Antwoord compact, klinisch, en direct bruikbaar voor besluitvorming.`;
 
     try {
       log("Sessie token aanvragen...");
-      const response = await createOpenAISession();
+      const response = await base44.functions.invoke('createOpenAISession');
 
       if (response.error || !response.data?.client_secret?.value) {
         throw new Error(`Sessie token fout: ${response.error?.message || 'Unknown error'}`);
