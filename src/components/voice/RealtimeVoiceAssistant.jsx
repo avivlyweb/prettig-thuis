@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Mic, MicOff, Volume2 } from 'lucide-react';
 import { CareEventBackend } from '../services/voiceAssistant';
-import { base44 } from '@/api/base44Client';
+import { createOpenAISession } from "@/functions/createOpenAISession";
 import { analyzeConversationForICF } from "@/functions/analyzeConversationForICF";
 import { interpretIcfCodes } from "@/lib/icfInterpretation";
 import { User } from "@/entities/User";
@@ -254,7 +254,7 @@ export default function RealtimeVoiceAssistant() {
     try {
       // Step 1: Get ephemeral token from our OWN backend function
       log("Sessie token aanvragen...");
-      const response = await base44.functions.invoke('createOpenAISession');
+      const response = await createOpenAISession({});
       const { data: sessionData, error } = response;
 
       if (error || !sessionData?.client_secret?.value) {
