@@ -678,7 +678,7 @@ Antwoord compact, klinisch, en direct bruikbaar voor besluitvorming.`;
         throw new Error("Peer connection was closed before setting remote description");
       }
       
-      const sdpResponse = await fetch("https://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview", {
+      const sdpResponse = await fetch("https://api.openai.com/v1/realtime?model=gpt-realtime", {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${EPHEMERAL_KEY}`,

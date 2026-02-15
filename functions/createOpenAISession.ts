@@ -1,15 +1,25 @@
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
-
-const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
 
 Deno.serve(async (req) => {
   // This is needed if you're planning to invoke your function from a browser.
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
+
+  if (req.method !== "POST") {
+    return new Response(JSON.stringify({ error: "Method not allowed" }), {
+      status: 405,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
+  const realtimeModel = Deno.env.get("OPENAI_REALTIME_MODEL") || "gpt-realtime";
+  const realtimeVoice = Deno.env.get("OPENAI_REALTIME_VOICE") || "alloy";
 
   if (!OPENAI_API_KEY) {
     return new Response(
@@ -24,11 +34,13 @@ Deno.serve(async (req) => {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${OPENAI_API_KEY}`,
+        "OpenAI-Beta": "realtime=v1",
         "Content-Type": "application/json",
       },
+      signal: AbortSignal.timeout(15000),
       body: JSON.stringify({
-        model: "gpt-4o-realtime-preview-2024-12-17",
-        voice: "alloy",
+        model: realtimeModel,
+        voice: realtimeVoice,
       }),
     });
 
