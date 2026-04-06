@@ -212,7 +212,7 @@ Deno.serve(async (req) => {
       const response = user_response.toLowerCase();
       const agitatedKw = ["angry", "go away", "stop", "leave me", "boos", "laat me", "weg", "schreeuw"];
       const cantKw = ["can't", "cannot", "won't", "no", "help", "kan niet", "wil niet", "nee", "pijn", "moe"];
-      const doneKw = ["done", "ready", "yes", "ok", "good", "klaar", "gedaan", "ja", "oke", "prima"];
+      const doneKw = ["done", "ready", "yes", "ok", "good", "next", "skip", "volgende", "overslaan", "klaar", "gedaan", "ja", "oke", "prima", "heb het", "gedaan", "net gedaan"];
 
       if (agitatedKw.some(k => response.includes(k))) {
         escalation = "agitation";
