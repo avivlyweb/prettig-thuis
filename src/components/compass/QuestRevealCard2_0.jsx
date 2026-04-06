@@ -7,6 +7,18 @@ export default function QuestRevealCard2_0({ quest, onReset, onStart }) {
   const [isPlaying, setIsPlaying] = useState(false);
   const audioRef = useRef(null);
 
+  const speakText = (text) => {
+    if (!('speechSynthesis' in window)) return;
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'nl-NL';
+    utterance.rate = 0.9;
+    utterance.onstart = () => setIsPlaying(true);
+    utterance.onend = () => setIsPlaying(false);
+    utterance.onerror = () => setIsPlaying(false);
+    window.speechSynthesis.speak(utterance);
+  };
+
   const playAudio = () => {
     if (quest?.quest_voice_url && audioRef.current) {
       if (isPlaying) {
@@ -16,18 +28,27 @@ export default function QuestRevealCard2_0({ quest, onReset, onStart }) {
         audioRef.current.play();
         setIsPlaying(true);
       }
+    } else if (quest) {
+      if (isPlaying) {
+        window.speechSynthesis.cancel();
+        setIsPlaying(false);
+      } else {
+        speakText(`${quest.title}. ${quest.description}`);
+      }
     }
   };
 
-  // Auto-play when the card appears (if audio is available)
   useEffect(() => {
-    if (quest?.quest_voice_url && audioRef.current) {
-      const timer = setTimeout(() => {
+    if (!quest) return;
+    const timer = setTimeout(() => {
+      if (quest.quest_voice_url && audioRef.current) {
         audioRef.current.play();
         setIsPlaying(true);
-      }, 500);
-      return () => clearTimeout(timer);
-    }
+      } else {
+        speakText(`${quest.title}. ${quest.description}`);
+      }
+    }, 500);
+    return () => clearTimeout(timer);
   }, [quest]);
 
   useEffect(() => {
@@ -59,7 +80,7 @@ export default function QuestRevealCard2_0({ quest, onReset, onStart }) {
             >
               <CheckCircle className="w-8 h-8 text-purple-600" />
             </motion.div>
-            
+
             <div className="space-y-3">
               <div className="flex items-center justify-center gap-2">
                 <h2 className="font-inter font-bold text-2xl md:text-3xl text-gray-900">
@@ -81,37 +102,23 @@ export default function QuestRevealCard2_0({ quest, onReset, onStart }) {
             </div>
 
             {/* Audio Player */}
-            {quest.quest_voice_url ? (
-              <div className="space-y-4">
-                <audio ref={audioRef} src={quest.quest_voice_url} />
-                <Button 
-                  onClick={playAudio}
-                  variant="outline" 
-                  className="tap-target px-8 py-4 rounded-2xl border-2 border-purple-200 hover:bg-purple-50 focus-strong"
-                >
-                  {isPlaying ? (
-                    <>
-                      <VolumeX className="w-5 h-5 mr-2" />
-                      Pauzeer Spraak
-                    </>
-                  ) : (
-                    <>
-                      <Volume2 className="w-5 h-5 mr-2" />
-                      Beluister Activiteit
-                    </>
-                  )}
-                </Button>
-                <p className="text-xs text-gray-500">
-                  Premium AI-gegenereerde natuurlijke stem
-                </p>
-              </div>
-            ) : (
-              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
-                <p className="text-sm text-amber-800">
-                  Audio nog niet beschikbaar voor deze activiteit
-                </p>
-              </div>
-            )}
+            <div className="space-y-2">
+              {quest.quest_voice_url && <audio ref={audioRef} src={quest.quest_voice_url} />}
+              <Button
+                onClick={playAudio}
+                variant="outline"
+                className="tap-target px-8 py-4 rounded-2xl border-2 border-purple-200 hover:bg-purple-50 focus-strong"
+              >
+                {isPlaying ? (
+                  <><VolumeX className="w-5 h-5 mr-2" />Pauzeer Spraak</>
+                ) : (
+                  <><Volume2 className="w-5 h-5 mr-2" />Beluister Activiteit</>
+                )}
+              </Button>
+              <p className="text-xs text-gray-500">
+                {quest.quest_voice_url ? 'Premium AI-gegenereerde stem' : 'Spraak via uw browser'}
+              </p>
+            </div>
 
             {/* Action Buttons */}
             <div className="flex flex-col sm:flex-row gap-4 pt-4">
@@ -130,7 +137,7 @@ export default function QuestRevealCard2_0({ quest, onReset, onStart }) {
           <div className="bg-purple-50 border-2 border-purple-200 rounded-2xl p-4 text-center">
             <div className="flex items-center justify-center space-x-2">
               <Volume2 className="w-5 h-5 text-purple-600 animate-pulse" />
-              <span className="font-medium text-purple-800">Premium stem speelt af...</span>
+              <span className="font-medium text-purple-800">Stem speelt af...</span>
             </div>
           </div>
         )}
