@@ -137,7 +137,7 @@ const DIFFICULTY_RESPONSES = {
 };
 
 async function generateAndCacheAudio(base44, routineType, stepIndex, lang, stepText) {
-  const voice = lang === "en" ? "nova" : "nova";
+  const voice = "coral";
 
   // Check cache first
   const existing = await base44.asServiceRole.entities.RoutineStepAudio.filter({
@@ -153,21 +153,17 @@ async function generateAndCacheAudio(base44, routineType, stepIndex, lang, stepT
 
   console.log(`Cache MISS: generating TTS for ${routineType} step ${stepIndex} [${lang}]`);
 
-  const ttsResponse = await fetch("https://api.openai.com/v1/audio/speech", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${Deno.env.get("OPENAI_API_KEY")}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "tts-1-hd",
-      voice,
-      input: stepText,
-      speed: 0.88,
-    }),
-  });
+  const ttsInstructions = lang === "en"
+    ? "Speak in a warm, calm, and gentle tone. Speak slowly and clearly. You are helping an elderly person with dementia through their daily routine. Be encouraging and patient."
+    : "Spreek op een warme, rustige en vriendelijke toon. Spreek langzaam en duidelijk. Je helpt een oudere persoon met dementie bij hun dagelijkse routine. Wees bemoedigend en geduldig.";
 
-  if (!ttsResponse.ok) throw new Error(`TTS failed: ${ttsResponse.status}`);
+  const ttsResponse = await openai.audio.speech.create({
+    model: "gpt-4o-mini-tts",
+    voice,
+    input: stepText,
+    instructions: ttsInstructions,
+    response_format: "mp3",
+  });
 
   const audioData = await ttsResponse.arrayBuffer();
   const audioFile = new File([new Blob([audioData], { type: "audio/mpeg" })], `routine_${routineType}_${stepIndex}_${lang}.mp3`, { type: "audio/mpeg" });
@@ -175,7 +171,6 @@ async function generateAndCacheAudio(base44, routineType, stepIndex, lang, stepT
 
   if (!uploadResult?.file_url) throw new Error("Upload failed");
 
-  // Store in cache entity
   await base44.asServiceRole.entities.RoutineStepAudio.create({
     routine_type: routineType,
     step_index: stepIndex,
