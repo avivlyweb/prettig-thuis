@@ -1,0 +1,42 @@
+{
+  "name": "RoutineStepAudio",
+  "type": "object",
+  "properties": {
+    "routine_type": {
+      "type": "string",
+      "description": "The routine type key (e.g. dressing, medication)"
+    },
+    "step_index": {
+      "type": "number",
+      "description": "Zero-based step index within the routine"
+    },
+    "lang": {
+      "type": "string",
+      "enum": [
+        "nl",
+        "en"
+      ],
+      "description": "Language of the generated audio",
+      "default": "nl"
+    },
+    "step_text": {
+      "type": "string",
+      "description": "The personalized/generated step text"
+    },
+    "audio_url": {
+      "type": "string",
+      "description": "URL to the cached OpenAI TTS audio file"
+    },
+    "voice": {
+      "type": "string",
+      "description": "OpenAI TTS voice used (e.g. nova, alloy)"
+    }
+  },
+  "required": [
+    "routine_type",
+    "step_index",
+    "lang",
+    "step_text",
+    "audio_url"
+  ]
+}

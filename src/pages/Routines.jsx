@@ -1,19 +1,25 @@
-
 import { useState, useEffect } from "react";
 import { Quest } from "@/entities/Quest";
 import { User } from "@/entities/User";
 import CompassPro from "../components/compass/CompassPro";
 import QuestRevealCard from "../components/compass/QuestRevealCard";
 import { Button } from "@/components/ui/button";
-import { RotateCcw } from "lucide-react";
+import { RotateCcw, Globe } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { saveCareEvent } from "@/lib/careEvents";
 
-const WEDGES = [
-  { key: "morning", label: "Ochtend", color: "#F59E0B" }, // Amber
-  { key: "midday", label: "Middag", color: "#2563EB" },  // Blue
-  { key: "afternoon", label: "Namiddag", color: "#10B981" }, // Green
-  { key: "evening", label: "Avond", color: "#EC4899" }, // Pink
+const WEDGES_NL = [
+  { key: "morning", label: "Ochtend", color: "#F59E0B" },
+  { key: "midday", label: "Middag", color: "#2563EB" },
+  { key: "afternoon", label: "Namiddag", color: "#10B981" },
+  { key: "evening", label: "Avond", color: "#EC4899" },
+];
+
+const WEDGES_EN = [
+  { key: "morning", label: "Morning", color: "#F59E0B" },
+  { key: "midday", label: "Midday", color: "#2563EB" },
+  { key: "afternoon", label: "Afternoon", color: "#10B981" },
+  { key: "evening", label: "Evening", color: "#EC4899" },
 ];
 
 const WEDGE_MAP = {
@@ -58,6 +64,7 @@ export default function RoutinesPage() {
   const [quests, setQuests] = useState([]);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [lang, setLang] = useState("nl");
   
   const [selectedQuest, setSelectedQuest] = useState(null);
   const [targetWedgeIndex, setTargetWedgeIndex] = useState(null);
@@ -103,6 +110,7 @@ export default function RoutinesPage() {
 
   const handleSpinRequest = () => {
     if (quests.length === 0 || isSpinning || !user) return;
+    // eslint-disable-next-line no-unused-vars
     
     setIsSpinning(true);
 
@@ -152,12 +160,22 @@ export default function RoutinesPage() {
     const questTimeTag = chosenQuest.tags?.find(t => WEDGE_MAP[t] !== undefined) || 'morning';
     const targetIndex = WEDGE_MAP[questTimeTag];
 
-    let reason = "Een goede keuze voor nu";
-    if (problemSolvingQuests.includes(chosenQuest)) {
-      reason = "Deze activiteit kan je vandaag helpen";
-    } else if (timeAppropriateQuests.includes(chosenQuest)) {
-      reason = `Perfect voor de ${timeTag}`;
-    }
+    const reasons = {
+      nl: {
+        good: "Een goede keuze voor nu",
+        helpful: "Deze activiteit kan je vandaag helpen",
+        timely: `Perfect voor de ${timeTag}`,
+      },
+      en: {
+        good: "A great choice for right now",
+        helpful: "This activity can help you today",
+        timely: `Perfect for the ${timeTag}`,
+      },
+    };
+    const r = reasons[lang];
+    let reason = r.good;
+    if (problemSolvingQuests.includes(chosenQuest)) reason = r.helpful;
+    else if (timeAppropriateQuests.includes(chosenQuest)) reason = r.timely;
     
     setSelectedQuest({ ...chosenQuest, reason });
     setTargetWedgeIndex(targetIndex);
@@ -223,15 +241,26 @@ export default function RoutinesPage() {
     );
   }
 
+  const WEDGES = lang === "en" ? WEDGES_EN : WEDGES_NL;
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white overflow-hidden">
       <div className="max-w-4xl mx-auto px-4 py-12">
-        <div className="text-center mb-12">
+        <div className="text-center mb-12 relative">
+          <button
+            onClick={() => setLang(l => l === "nl" ? "en" : "nl")}
+            className="absolute right-0 top-0 flex items-center gap-1 px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-sm text-gray-600 hover:bg-blue-50 hover:text-blue-700 transition-colors"
+          >
+            <Globe className="w-4 h-4" />
+            {lang === "nl" ? "English" : "Nederlands"}
+          </button>
           <h1 className="font-inter font-bold text-3xl md:text-4xl text-gray-900 mb-4">
-            Dagelijkse Routines
+            {lang === "en" ? "Daily Routines" : "Dagelijkse Routines"}
           </h1>
           <p className="font-lato text-xl text-gray-600 max-w-2xl mx-auto">
-            Draai het kompas om een persoonlijke activiteit te ontdekken die past bij jouw dag.
+            {lang === "en"
+              ? "Spin the compass to discover a personalised activity for your day."
+              : "Draai het kompas om een persoonlijke activiteit te ontdekken die past bij jouw dag."}
           </p>
         </div>
         
@@ -275,7 +304,7 @@ export default function RoutinesPage() {
                   )}
                 </Button>
                 <p className="font-lato text-sm text-gray-500">
-                  {quests.length} activiteiten beschikbaar
+                  {lang === "en" ? `${quests.length} activities available` : `${quests.length} activiteiten beschikbaar`}
                 </p>
               </motion.div>
             ) : (

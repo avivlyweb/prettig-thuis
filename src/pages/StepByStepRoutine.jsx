@@ -3,26 +3,70 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { base44 } from "@/api/base44Client";
-import { CheckCircle, AlertTriangle, Mic, MicOff, ChevronRight, RotateCcw, Heart } from "lucide-react";
+import { CheckCircle, AlertTriangle, Mic, MicOff, ChevronRight, RotateCcw, Heart, Globe } from "lucide-react";
 
-const ROUTINES = [
-  { type: "morning_routine", label: "🌅 Ochtendroutine", desc: "Start de dag stap voor stap", icf: "d230" },
-  { type: "dressing", label: "👕 Aankleden", desc: "Help bij het aankleden", icf: "d540" },
-  { type: "medication", label: "💊 Medicijnen", desc: "Medicatie innemen", icf: "d5702" },
-  { type: "washing", label: "🚿 Wassen", desc: "Wassen en verzorging", icf: "d510" },
-];
+const ROUTINES = {
+  nl: [
+    { type: "morning_routine", label: "🌅 Ochtendroutine", desc: "Start de dag stap voor stap", icf: "d230" },
+    { type: "dressing", label: "👕 Aankleden", desc: "Help bij het aankleden", icf: "d540" },
+    { type: "medication", label: "💊 Medicijnen", desc: "Medicatie innemen", icf: "d5702" },
+    { type: "washing", label: "🚿 Wassen", desc: "Wassen en verzorging", icf: "d510" },
+  ],
+  en: [
+    { type: "morning_routine", label: "🌅 Morning Routine", desc: "Start the day step by step", icf: "d230" },
+    { type: "dressing", label: "👕 Getting Dressed", desc: "Help with getting dressed", icf: "d540" },
+    { type: "medication", label: "💊 Medication", desc: "Taking medication", icf: "d5702" },
+    { type: "washing", label: "🚿 Washing", desc: "Washing and personal care", icf: "d510" },
+  ],
+};
+
+const T = {
+  nl: {
+    title: "Stap-voor-Stap Begeleiding",
+    subtitle: "AI-begeleide dagelijkse routines · EBP protocol",
+    source: "Gebaseerd op Alzheimer Nederland + KNGF 2025 richtlijnen",
+    step: (n, t) => `Stap ${n} van ${t}`,
+    caregiverAlert: "Mantelzorger alert",
+    caregiverAlertDesc: "De gebruiker toont tekenen van agitatie. Overweeg te pauzeren.",
+    done: "Klaar ✓",
+    needHelp: "Ik heb hulp nodig",
+    skip: "Sla over naar volgende stap",
+    listen: "Luisteren...",
+    speak: "Spreek uw antwoord in",
+    complete: "Routine voltooid! 🎉",
+    backToMenu: "Terug naar menu",
+    switchLang: "English",
+  },
+  en: {
+    title: "Step-by-Step Guidance",
+    subtitle: "AI-guided daily routines · EBP protocol",
+    source: "Based on Alzheimer's Association + KNGF 2025 guidelines",
+    step: (n, t) => `Step ${n} of ${t}`,
+    caregiverAlert: "Caregiver alert",
+    caregiverAlertDesc: "The user is showing signs of agitation. Consider pausing.",
+    done: "Done ✓",
+    needHelp: "I need help",
+    skip: "Skip to next step",
+    listen: "Listening...",
+    speak: "Speak your answer",
+    complete: "Routine complete! 🎉",
+    backToMenu: "Back to menu",
+    switchLang: "Nederlands",
+  },
+};
 
 export default function StepByStepRoutine() {
+  const [lang, setLang] = useState("nl");
   const [selectedRoutine, setSelectedRoutine] = useState(null);
   const [stepData, setStepData] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [userInput, setUserInput] = useState("");
   const [history, setHistory] = useState([]);
   const [isListening, setIsListening] = useState(false);
   const [caregiverAlert, setCaregiverAlert] = useState(false);
   const [userName, setUserName] = useState("");
   const recognitionRef = useRef(null);
   const synth = window.speechSynthesis;
+  const t = T[lang];
 
   useEffect(() => {
     base44.auth.me().then(u => setUserName(u?.full_name?.split(" ")[0] || "")).catch(() => {});
@@ -32,10 +76,15 @@ export default function StepByStepRoutine() {
     if (!text || !synth) return;
     synth.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = "nl-NL";
+    utterance.lang = lang === "en" ? "en-GB" : "nl-NL";
     utterance.rate = 0.85;
-    utterance.pitch = 1.05;
     synth.speak(utterance);
+  };
+
+  const playAudio = (url) => {
+    if (!url) return;
+    const audio = new Audio(url);
+    audio.play().catch(e => console.warn("Audio play failed:", e));
   };
 
   const callAgent = async (routineType, currentStep = 0, userResponse = null) => {
@@ -46,13 +95,18 @@ export default function StepByStepRoutine() {
         current_step: currentStep,
         user_response: userResponse,
         user_name: userName,
+        lang,
       });
       const data = response.data || response;
       setStepData(data);
 
       if (data.step_text) {
         setHistory(prev => [...prev, { text: data.step_text, role: "assistant", step: data.current_step }]);
-        speak(data.step_text);
+        if (data.audio_url) {
+          playAudio(data.audio_url);
+        } else {
+          speak(data.step_text);
+        }
       }
 
       if (data.needs_caregiver_alert) setCaregiverAlert(true);
@@ -74,7 +128,6 @@ export default function StepByStepRoutine() {
   const handleResponse = async (responseText) => {
     if (!stepData || stepData.is_complete) return;
     setHistory(prev => [...prev, { text: responseText, role: "user" }]);
-    setUserInput("");
     await callAgent(selectedRoutine.type, stepData.current_step, responseText);
   };
 
@@ -82,7 +135,7 @@ export default function StepByStepRoutine() {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) return;
     const rec = new SpeechRecognition();
-    rec.lang = "nl-NL";
+    rec.lang = lang === "en" ? "en-GB" : "nl-NL";
     rec.continuous = false;
     rec.onstart = () => setIsListening(true);
     rec.onend = () => setIsListening(false);
@@ -102,17 +155,27 @@ export default function StepByStepRoutine() {
     setCaregiverAlert(false);
   };
 
+  const routineList = ROUTINES[lang];
+
   // Routine selection screen
   if (!selectedRoutine) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white p-4">
         <div className="max-w-2xl mx-auto pt-8 space-y-6">
-          <div className="text-center space-y-2">
-            <h1 className="text-3xl font-bold text-gray-900">Stap-voor-Stap Begeleiding</h1>
-            <p className="text-gray-600">AI-begeleide dagelijkse routines · EBP protocol</p>
+          <div className="text-center space-y-2 relative">
+            <button
+              onClick={() => setLang(l => l === "nl" ? "en" : "nl")}
+              className="absolute right-0 top-0 flex items-center gap-1 px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-sm text-gray-600 hover:bg-blue-50 hover:text-blue-700 transition-colors"
+            >
+              <Globe className="w-4 h-4" />
+              {t.switchLang}
+            </button>
+            <h1 className="text-3xl font-bold text-gray-900">{t.title}</h1>
+            <p className="text-gray-600">{t.subtitle}</p>
           </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {ROUTINES.map(r => (
+            {routineList.map(r => (
               <Card
                 key={r.type}
                 onClick={() => startRoutine(r)}
@@ -127,14 +190,14 @@ export default function StepByStepRoutine() {
               </Card>
             ))}
           </div>
-          <p className="text-xs text-center text-gray-400">
-            Gebaseerd op Alzheimer Nederland + KNGF 2025 richtlijnen
-          </p>
+
+          <p className="text-xs text-center text-gray-400">{t.source}</p>
         </div>
       </div>
     );
   }
 
+  // Active routine screen
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white p-4">
       <div className="max-w-xl mx-auto pt-6 space-y-4">
@@ -153,7 +216,7 @@ export default function StepByStepRoutine() {
         {stepData && (
           <div className="space-y-1">
             <div className="flex justify-between text-xs text-gray-500">
-              <span>Stap {stepData.current_step + 1} van {stepData.total_steps}</span>
+              <span>{t.step(stepData.current_step + 1, stepData.total_steps)}</span>
               <span>{stepData.progress_percent}%</span>
             </div>
             <div className="w-full bg-gray-200 rounded-full h-3">
@@ -171,8 +234,8 @@ export default function StepByStepRoutine() {
             <CardContent className="p-4 flex items-center gap-3">
               <AlertTriangle className="w-5 h-5 text-red-600" />
               <div>
-                <p className="font-semibold text-red-800">Mantelzorger alert</p>
-                <p className="text-sm text-red-700">De gebruiker toont tekenen van agitatie. Overweeg te pauzeren.</p>
+                <p className="font-semibold text-red-800">{t.caregiverAlert}</p>
+                <p className="text-sm text-red-700">{t.caregiverAlertDesc}</p>
               </div>
             </CardContent>
           </Card>
@@ -183,9 +246,7 @@ export default function StepByStepRoutine() {
           {history.map((msg, i) => (
             <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
               <div className={`max-w-xs rounded-2xl px-4 py-3 text-sm ${
-                msg.role === "assistant"
-                  ? "bg-blue-600 text-white"
-                  : "bg-gray-100 text-gray-900"
+                msg.role === "assistant" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-900"
               }`}>
                 {msg.text}
               </div>
@@ -195,7 +256,7 @@ export default function StepByStepRoutine() {
             <div className="flex justify-start">
               <div className="bg-blue-100 rounded-2xl px-4 py-3">
                 <div className="flex gap-1">
-                  {[0,1,2].map(i => (
+                  {[0, 1, 2].map(i => (
                     <div key={i} className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: `${i * 150}ms` }} />
                   ))}
                 </div>
@@ -204,14 +265,14 @@ export default function StepByStepRoutine() {
           )}
         </div>
 
-        {/* Completion state */}
+        {/* Completion */}
         {stepData?.is_complete && !caregiverAlert && (
           <Card className="border-2 border-green-200 bg-green-50 rounded-2xl">
             <CardContent className="p-6 text-center space-y-3">
               <CheckCircle className="w-12 h-12 text-green-500 mx-auto" />
-              <p className="font-bold text-green-800 text-lg">Routine voltooid! 🎉</p>
+              <p className="font-bold text-green-800 text-lg">{t.complete}</p>
               <Button onClick={reset} className="bg-green-600 hover:bg-green-700 text-white">
-                Terug naar menu
+                {t.backToMenu}
               </Button>
             </CardContent>
           </Card>
@@ -220,45 +281,42 @@ export default function StepByStepRoutine() {
         {/* Response buttons */}
         {stepData && !stepData.is_complete && !loading && (
           <div className="space-y-3">
-            {/* Quick response buttons */}
             <div className="grid grid-cols-2 gap-3">
               <Button
-                onClick={() => handleResponse("klaar")}
+                onClick={() => handleResponse(lang === "en" ? "done" : "klaar")}
                 className="bg-green-600 hover:bg-green-700 text-white rounded-xl py-6 text-base"
               >
                 <CheckCircle className="w-5 h-5 mr-2" />
-                Klaar ✓
+                {t.done}
               </Button>
               <Button
-                onClick={() => handleResponse("kan niet")}
+                onClick={() => handleResponse(lang === "en" ? "can't" : "kan niet")}
                 variant="outline"
                 className="border-2 border-amber-300 text-amber-800 hover:bg-amber-50 rounded-xl py-6 text-base"
               >
                 <Heart className="w-5 h-5 mr-2" />
-                Ik heb hulp nodig
+                {t.needHelp}
               </Button>
             </div>
 
-            {/* Skip + next */}
             <Button
-              onClick={() => handleResponse("volgende stap")}
+              onClick={() => handleResponse(lang === "en" ? "next step" : "volgende stap")}
               variant="ghost"
               className="w-full text-gray-500"
             >
               <ChevronRight className="w-4 h-4 mr-1" />
-              Sla over naar volgende stap
+              {t.skip}
             </Button>
 
-            {/* Voice input */}
             <Button
               onClick={startVoiceInput}
               variant={isListening ? "destructive" : "outline"}
               className="w-full rounded-xl py-4 border-2"
             >
               {isListening ? (
-                <><MicOff className="w-5 h-5 mr-2" /> Luisteren...</>
+                <><MicOff className="w-5 h-5 mr-2" />{t.listen}</>
               ) : (
-                <><Mic className="w-5 h-5 mr-2" /> Spreek uw antwoord in</>
+                <><Mic className="w-5 h-5 mr-2" />{t.speak}</>
               )}
             </Button>
           </div>
