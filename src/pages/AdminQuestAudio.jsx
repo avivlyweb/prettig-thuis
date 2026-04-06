@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Quest } from "@/entities/Quest";
 import { User } from "@/entities/User";
@@ -141,13 +140,10 @@ export default function AdminQuestAudio() {
       const quest = questsWithoutAudio[i];
       
       try {
-        const text = `${quest.title}. ${quest.description}`;
-        
         console.log(`🎙️ Generating audio for: ${quest.title}`);
 
         const response = await generateQuestAudio({
           quest_id: quest.id,
-          text: text
         });
 
         if (response.data?.success) {

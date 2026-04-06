@@ -1,11 +1,12 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.7.1';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
+import OpenAI from 'npm:openai';
+
+const openai = new OpenAI({ apiKey: Deno.env.get('OPENAI_API_KEY') });
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
-
-const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -30,49 +31,54 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { quest_id, text } = await req.json();
+    const { quest_id } = await req.json();
 
-    if (!quest_id || !text) {
-      throw new Error("Missing quest_id or text parameter");
+    if (!quest_id) {
+      throw new Error("Missing quest_id parameter");
     }
 
     console.log(`🎙️ Generating audio for quest: ${quest_id}`);
 
-    // First, fetch the existing quest to get all its data
+    // Fetch the existing quest
     const existingQuest = await base44.asServiceRole.entities.Quest.filter({ id: quest_id });
     if (!existingQuest || existingQuest.length === 0) {
       throw new Error(`Quest with id ${quest_id} not found`);
     }
     const quest = existingQuest[0];
-
     console.log("✅ Quest found:", quest.title);
-    console.log("📊 Quest data:", JSON.stringify(quest, null, 2));
 
-    // Generate audio using OpenAI TTS
-    const ttsResponse = await fetch("https://api.openai.com/v1/audio/speech", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${OPENAI_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "tts-1-hd",
-        voice: "nova",
-        input: text,
-        speed: 0.9
-      }),
+    // Step 1: Use GPT to rewrite the quest as a warm, elderly-friendly announcement (NO codes or clinical jargon)
+    const gptResponse = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content: "Je bent een vriendelijke zorgassistent voor ouderen met dementie. Schrijf een korte, warme aankondiging (max 2 zinnen) voor een activiteit. Gebruik GEEN medische codes, geen vaktermen. Spreek direct en vriendelijk aan. Zeg alleen de naam van de activiteit en één reden waarom het leuk of goed is."
+        },
+        {
+          role: "user",
+          content: `Activiteit: ${quest.title}\nBeschrijving: ${quest.description}`
+        }
+      ],
+      max_tokens: 80,
+      temperature: 0.7,
     });
+    const friendlyText = gptResponse.choices[0].message.content.trim();
+    console.log("✅ Friendly text:", friendlyText);
 
-    if (!ttsResponse.ok) {
-      const errorText = await ttsResponse.text();
-      console.error("OpenAI TTS API error:", errorText);
-      throw new Error(`OpenAI TTS API request failed: ${ttsResponse.status}`);
-    }
+    // Step 2: Generate audio with gpt-4o-mini-tts
+    const ttsResponse = await openai.audio.speech.create({
+      model: "gpt-4o-mini-tts",
+      voice: "coral",
+      input: friendlyText,
+      instructions: "Spreek op een warme, rustige en vriendelijke toon. Spreek langzaam en duidelijk. Je helpt een oudere persoon met dementie bij het kiezen van een activiteit. Wees bemoedigend.",
+      response_format: "mp3",
+    });
 
     const audioData = await ttsResponse.arrayBuffer();
     console.log("✅ Received audio, size:", audioData.byteLength);
 
-    // Create a File object from the audio data
+    // Upload the audio
     const audioBlob = new Blob([audioData], { type: 'audio/mpeg' });
     const audioFile = new File([audioBlob], `quest_${quest.quest_id}.mp3`, { type: 'audio/mpeg' });
 

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Volume2, RotateCcw, Repeat, MessageSquare, Settings, CheckCircle } from 'lucide-react';
@@ -12,6 +12,19 @@ export default function QuestRevealCard({ quest, onReset, onStart, lang = "nl" }
   const t = T[lang] || T.nl;
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [speechSpeed, setSpeechSpeed] = useState('normal');
+  const audioRef = useRef(null);
+
+  const playVoiceUrl = (url) => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+    }
+    const audio = new Audio(url);
+    audioRef.current = audio;
+    setIsSpeaking(true);
+    audio.play().catch(e => console.warn('Audio play failed:', e));
+    audio.onended = () => setIsSpeaking(false);
+    audio.onerror = () => setIsSpeaking(false);
+  };
 
   const speakText = (text) => {
     if ('speechSynthesis' in window) {
@@ -28,7 +41,10 @@ export default function QuestRevealCard({ quest, onReset, onStart, lang = "nl" }
   };
 
   const repeatQuest = () => {
-    if (quest) {
+    if (!quest) return;
+    if (quest.quest_voice_url) {
+      playVoiceUrl(quest.quest_voice_url);
+    } else {
       speakText(`${quest.title}. ${quest.description}`);
     }
   };
@@ -45,8 +61,12 @@ export default function QuestRevealCard({ quest, onReset, onStart, lang = "nl" }
   useEffect(() => {
     if (quest) {
       const timer = setTimeout(() => {
-        speakText(`${quest.title}. ${quest.description}`);
-      }, 500); // Small delay for the animation
+        if (quest.quest_voice_url) {
+          playVoiceUrl(quest.quest_voice_url);
+        } else {
+          speakText(`${quest.title}. ${quest.description}`);
+        }
+      }, 500);
       return () => clearTimeout(timer);
     }
   }, [quest]);
