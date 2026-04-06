@@ -3,7 +3,13 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Volume2, RotateCcw, Repeat, MessageSquare, Settings, CheckCircle } from 'lucide-react';
 
-export default function QuestRevealCard({ quest, onReset, onStart }) {
+const T = {
+  nl: { repeat: "Herhaal", rephrase: "Herformuleer", slow: "Langzaam", normal: "Normaal", fast: "Snel", start: "Start Activiteit", newCompass: "Nieuw Kompas", speaking: "Aan het spreken..." },
+  en: { repeat: "Repeat", rephrase: "Rephrase", slow: "Slow", normal: "Normal", fast: "Fast", start: "Start Activity", newCompass: "New Compass", speaking: "Speaking..." },
+};
+
+export default function QuestRevealCard({ quest, onReset, onStart, lang = "nl" }) {
+  const t = T[lang] || T.nl;
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [speechSpeed, setSpeechSpeed] = useState('normal');
 
@@ -11,7 +17,7 @@ export default function QuestRevealCard({ quest, onReset, onStart }) {
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = 'nl-NL';
+      utterance.lang = lang === 'en' ? 'en-GB' : 'nl-NL';
       const rates = { slow: 0.7, normal: 1, fast: 1.3 };
       utterance.rate = rates[speechSpeed];
       utterance.onstart = () => setIsSpeaking(true);
@@ -85,18 +91,18 @@ export default function QuestRevealCard({ quest, onReset, onStart }) {
             <div className="flex flex-wrap justify-center gap-3">
               <Button onClick={repeatQuest} variant="outline" className="tap-target px-6 py-3 rounded-xl border-2 focus-strong" disabled={isSpeaking}>
                 <Repeat className="w-5 h-5 mr-2" />
-                Herhaal
+                {t.repeat}
               </Button>
               <Button onClick={rephraseQuest} variant="outline" className="tap-target px-6 py-3 rounded-xl border-2 focus-strong" disabled={isSpeaking}>
                 <MessageSquare className="w-5 h-5 mr-2" />
-                Herformuleer
+                {t.rephrase}
               </Button>
               <div className="flex items-center gap-2">
                 <Settings className="w-4 h-4 text-gray-500" />
                 <select value={speechSpeed} onChange={(e) => setSpeechSpeed(e.target.value)} className="tap-target px-3 py-2 border-2 border-gray-200 rounded-lg focus-strong bg-white">
-                  <option value="slow">Langzaam</option>
-                  <option value="normal">Normaal</option>
-                  <option value="fast">Snel</option>
+                  <option value="slow">{t.slow}</option>
+                  <option value="normal">{t.normal}</option>
+                  <option value="fast">{t.fast}</option>
                 </select>
               </div>
             </div>
@@ -104,11 +110,11 @@ export default function QuestRevealCard({ quest, onReset, onStart }) {
             {/* Action Buttons */}
             <div className="flex flex-col sm:flex-row gap-4 pt-4">
               <Button onClick={onStart} className="tap-target flex-1 bg-green-600 hover:bg-green-700 text-white py-4 text-lg font-semibold rounded-2xl focus-strong">
-                Start Activiteit
+                {t.start}
               </Button>
               <Button onClick={onReset} variant="outline" className="tap-target px-6 py-4 rounded-2xl border-2 focus-strong">
                 <RotateCcw className="w-5 h-5 mr-2" />
-                Nieuw Kompas
+                {t.newCompass}
               </Button>
             </div>
           </div>
@@ -118,7 +124,7 @@ export default function QuestRevealCard({ quest, onReset, onStart }) {
           <div className="bg-amber-50 border-2 border-amber-200 rounded-2xl p-4 text-center">
             <div className="flex items-center justify-center space-x-2">
               <Volume2 className="w-5 h-5 text-amber-600 animate-pulse" />
-              <span className="font-medium text-amber-800">Aan het spreken...</span>
+              <span className="font-medium text-amber-800">{t.speaking}</span>
             </div>
           </div>
         )}

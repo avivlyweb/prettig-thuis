@@ -3,6 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { base44 } from "@/api/base44Client";
+import { routineStepAgent } from "@/functions/routineStepAgent";
 import { CheckCircle, AlertTriangle, Mic, MicOff, ChevronRight, RotateCcw, Heart, Globe } from "lucide-react";
 
 const ROUTINES = {
@@ -90,7 +91,7 @@ export default function StepByStepRoutine() {
   const callAgent = async (routineType, currentStep = 0, userResponse = null) => {
     setLoading(true);
     try {
-      const response = await base44.functions.invoke("routineStepAgent", {
+      const response = await routineStepAgent({
         routine_type: routineType,
         current_step: currentStep,
         user_response: userResponse,

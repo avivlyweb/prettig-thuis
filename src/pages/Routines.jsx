@@ -294,12 +294,12 @@ export default function RoutinesPage() {
                   {isSpinning ? (
                     <>
                       <div className="animate-spin w-6 h-6 mr-3 border-2 border-white border-t-transparent rounded-full"></div>
-                      Aan het draaien...
+                      {lang === "en" ? "Spinning..." : "Aan het draaien..."}
                     </>
                   ) : (
                     <>
                       <RotateCcw className="w-6 h-6 mr-3" />
-                      Draai het Kompas
+                      {lang === "en" ? "Spin the Compass" : "Draai het Kompas"}
                     </>
                   )}
                 </Button>
@@ -313,6 +313,7 @@ export default function RoutinesPage() {
                   quest={selectedQuest}
                   onReset={resetCompass}
                   onStart={() => handleQuestStart(selectedQuest)}
+                  lang={lang}
                 />
               </motion.div>
             )}
