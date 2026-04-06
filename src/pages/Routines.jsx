@@ -9,17 +9,17 @@ import { AnimatePresence, motion } from "framer-motion";
 import { saveCareEvent } from "@/lib/careEvents";
 
 const WEDGES_NL = [
-  { key: "morning", label: "Ochtend", color: "#F59E0B" },
-  { key: "midday", label: "Middag", color: "#2563EB" },
-  { key: "afternoon", label: "Namiddag", color: "#10B981" },
-  { key: "evening", label: "Avond", color: "#EC4899" },
+  { key: "morning", label: "Ochtend", color: "#F59E0B", icon: "🌅" },
+  { key: "midday", label: "Middag", color: "#2563EB", icon: "☀️" },
+  { key: "afternoon", label: "Namiddag", color: "#10B981", icon: "🌿" },
+  { key: "evening", label: "Avond", color: "#EC4899", icon: "🌙" },
 ];
 
 const WEDGES_EN = [
-  { key: "morning", label: "Morning", color: "#F59E0B" },
-  { key: "midday", label: "Midday", color: "#2563EB" },
-  { key: "afternoon", label: "Afternoon", color: "#10B981" },
-  { key: "evening", label: "Evening", color: "#EC4899" },
+  { key: "morning", label: "Morning", color: "#F59E0B", icon: "🌅" },
+  { key: "midday", label: "Midday", color: "#2563EB", icon: "☀️" },
+  { key: "afternoon", label: "Afternoon", color: "#10B981", icon: "🌿" },
+  { key: "evening", label: "Evening", color: "#EC4899", icon: "🌙" },
 ];
 
 const WEDGE_MAP = {
@@ -244,7 +244,7 @@ export default function RoutinesPage() {
   const WEDGES = lang === "en" ? WEDGES_EN : WEDGES_NL;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-blue-50 to-pink-50 overflow-hidden">
       <div className="max-w-4xl mx-auto px-4 py-12">
         <div className="text-center mb-12 relative">
           <button
@@ -285,10 +285,10 @@ export default function RoutinesPage() {
                 <Button
                   onClick={handleSpinRequest}
                   disabled={isSpinning || !user}
-                  className={`tap-target px-8 py-4 text-xl font-bold rounded-2xl transition-all transform focus-strong shadow-lg ${
+                  className={`tap-target px-8 py-4 text-xl font-bold rounded-2xl transition-all transform focus-strong shadow-xl ${
                     isSpinning || !user
-                      ? 'bg-gray-400 cursor-not-allowed' 
-                      : 'bg-blue-600 hover:bg-blue-700 hover:scale-105'
+                      ? 'bg-gray-400 cursor-not-allowed shadow-none'
+                      : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 hover:scale-105 hover:shadow-blue-300'
                   } text-white`}
                 >
                   {isSpinning ? (
