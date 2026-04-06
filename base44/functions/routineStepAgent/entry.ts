@@ -136,6 +136,22 @@ const DIFFICULTY_RESPONSES = {
   },
 };
 
+async function generateTTS(openai, text, lang) {
+  const ttsInstructions = lang === "en"
+    ? "Speak in a warm, calm, and gentle tone. Speak slowly and clearly. You are helping an elderly person with dementia through their daily routine. Be encouraging and patient."
+    : "Spreek op een warme, rustige en vriendelijke toon. Spreek langzaam en duidelijk. Je helpt een oudere persoon met dementie bij hun dagelijkse routine. Wees bemoedigend en geduldig.";
+
+  const ttsResponse = await openai.audio.speech.create({
+    model: "gpt-4o-mini-tts",
+    voice: "coral",
+    input: text,
+    instructions: ttsInstructions,
+    response_format: "mp3",
+  });
+
+  return ttsResponse.arrayBuffer();
+}
+
 async function generateAndCacheAudio(base44, routineType, stepIndex, lang, stepText) {
   const voice = "coral";
 
@@ -153,19 +169,7 @@ async function generateAndCacheAudio(base44, routineType, stepIndex, lang, stepT
 
   console.log(`Cache MISS: generating TTS for ${routineType} step ${stepIndex} [${lang}]`);
 
-  const ttsInstructions = lang === "en"
-    ? "Speak in a warm, calm, and gentle tone. Speak slowly and clearly. You are helping an elderly person with dementia through their daily routine. Be encouraging and patient."
-    : "Spreek op een warme, rustige en vriendelijke toon. Spreek langzaam en duidelijk. Je helpt een oudere persoon met dementie bij hun dagelijkse routine. Wees bemoedigend en geduldig.";
-
-  const ttsResponse = await openai.audio.speech.create({
-    model: "gpt-4o-mini-tts",
-    voice,
-    input: stepText,
-    instructions: ttsInstructions,
-    response_format: "mp3",
-  });
-
-  const audioData = await ttsResponse.arrayBuffer();
+  const audioData = await generateTTS(openai, stepText, lang);
   const audioFile = new File([new Blob([audioData], { type: "audio/mpeg" })], `routine_${routineType}_${stepIndex}_${lang}.mp3`, { type: "audio/mpeg" });
   const uploadResult = await base44.asServiceRole.integrations.Core.UploadFile({ file: audioFile });
 
@@ -231,10 +235,28 @@ Deno.serve(async (req) => {
 
     if (escalation) {
       stepText = overrideText;
+      // Generate OpenAI TTS for escalation responses (no caching, always fresh)
+      try {
+        const audioData = await generateTTS(openai, stepText, lang);
+        const audioFile = new File([new Blob([audioData], { type: "audio/mpeg" })], `escalation_${lang}.mp3`, { type: "audio/mpeg" });
+        const uploadResult = await base44.asServiceRole.integrations.Core.UploadFile({ file: audioFile });
+        if (uploadResult?.file_url) audio_url = uploadResult.file_url;
+      } catch (audioErr) {
+        console.warn("Escalation TTS skipped:", audioErr.message);
+      }
     } else if (isComplete) {
       stepText = lang === "en"
         ? `Well done, ${name}! You've completed the ${routine.title.en.toLowerCase()}. That's wonderful!`
         : `Heel goed gedaan, ${name}! U heeft de ${routine.title.nl.toLowerCase()} helemaal afgerond. Dat is geweldig!`;
+      // Generate TTS for completion message too
+      try {
+        const audioData = await generateTTS(openai, stepText, lang);
+        const audioFile = new File([new Blob([audioData], { type: "audio/mpeg" })], `complete_${lang}.mp3`, { type: "audio/mpeg" });
+        const uploadResult = await base44.asServiceRole.integrations.Core.UploadFile({ file: audioFile });
+        if (uploadResult?.file_url) audio_url = uploadResult.file_url;
+      } catch (audioErr) {
+        console.warn("Completion TTS skipped:", audioErr.message);
+      }
     } else {
       const rawStep = steps[nextStepIndex];
 
@@ -250,7 +272,7 @@ Deno.serve(async (req) => {
       });
       stepText = completion.choices[0].message.content;
 
-      // Generate + cache audio (skip for agitation/difficulty override)
+      // Generate + cache audio
       try {
         audio_url = await generateAndCacheAudio(base44, routine_type, nextStepIndex, lang, stepText);
       } catch (audioErr) {
