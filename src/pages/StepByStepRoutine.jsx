@@ -8,16 +8,24 @@ import { CheckCircle, AlertTriangle, Mic, MicOff, ChevronRight, RotateCcw, Heart
 
 const ROUTINES = {
   nl: [
-    { type: "morning_routine", label: "🌅 Ochtendroutine", desc: "Start de dag stap voor stap", icf: "d230" },
-    { type: "dressing", label: "👕 Aankleden", desc: "Help bij het aankleden", icf: "d540" },
+    { type: "morning_routine", label: "🌅 Ochtendroutine", desc: "Start de dag rustig samen", icf: "d230" },
+    { type: "dressing", label: "👕 Aankleden", desc: "Stap voor stap aankleden", icf: "d540" },
+    { type: "washing", label: "🚿 Wassen", desc: "Gezicht en handen wassen", icf: "d510" },
     { type: "medication", label: "💊 Medicijnen", desc: "Medicatie innemen", icf: "d5702" },
-    { type: "washing", label: "🚿 Wassen", desc: "Wassen en verzorging", icf: "d510" },
+    { type: "toileting", label: "🚻 Toilet", desc: "Veilig en waardig naar het toilet", icf: "d530" },
+    { type: "eating", label: "🍽️ Eten & drinken", desc: "Rustig en genieten aan tafel", icf: "d550" },
+    { type: "walking", label: "🚶 Even bewegen", desc: "Een stukje lopen, goed voor u", icf: "d450" },
+    { type: "light_housework", label: "🧹 Helpen in huis", desc: "Een klein klusje, groot gevoel", icf: "d640" },
   ],
   en: [
-    { type: "morning_routine", label: "🌅 Morning Routine", desc: "Start the day step by step", icf: "d230" },
-    { type: "dressing", label: "👕 Getting Dressed", desc: "Help with getting dressed", icf: "d540" },
+    { type: "morning_routine", label: "🌅 Morning Routine", desc: "Start the day together, gently", icf: "d230" },
+    { type: "dressing", label: "👕 Getting Dressed", desc: "Getting dressed step by step", icf: "d540" },
+    { type: "washing", label: "🚿 Washing", desc: "Washing face and hands", icf: "d510" },
     { type: "medication", label: "💊 Medication", desc: "Taking medication", icf: "d5702" },
-    { type: "washing", label: "🚿 Washing", desc: "Washing and personal care", icf: "d510" },
+    { type: "toileting", label: "🚻 Toilet", desc: "Safe and dignified toileting", icf: "d530" },
+    { type: "eating", label: "🍽️ Eating & Drinking", desc: "Relaxed and enjoyable mealtimes", icf: "d550" },
+    { type: "walking", label: "🚶 A Little Walk", desc: "A short walk, good for you", icf: "d450" },
+    { type: "light_housework", label: "🧹 Helping at Home", desc: "A small task, a big feeling", icf: "d640" },
   ],
 };
 
@@ -175,7 +183,7 @@ export default function StepByStepRoutine() {
             <p className="text-gray-600">{t.subtitle}</p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {routineList.map(r => (
               <Card
                 key={r.type}
