@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -17,7 +16,8 @@ import {
   BarChart3,
   Menu,
   ChevronDown,
-  Video
+  Video,
+  Footprints
 } from "lucide-react";
 import {
   Sheet,
@@ -44,6 +44,7 @@ export default function Layout({ children, currentPageName }) {
   const coreNavItems = [
     { name: "Home", url: createPageUrl("Home"), icon: Home },
     { name: "Routines", url: createPageUrl("Routines"), icon: RotateCcw },
+    { name: "Begeleiding", url: "/StepByStepRoutine", icon: Footprints },
     { name: "Memory Album", url: createPageUrl("MemoryAlbum"), icon: Camera },
     { name: "Gouden Momenten", url: createPageUrl("GoudenMomenten"), icon: Play },
     { name: "Caregiver", url: createPageUrl("Caregiver"), icon: Users },

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { User } from "@/entities/User";
 import { Button } from "@/components/ui/button";
@@ -17,8 +16,10 @@ import {
   Mic,
   Code,
   Activity,
+  Brain,
 } from "lucide-react";
 import AlertSystem from "../components/caregiver/AlertSystem";
+import ICFProgressDashboard from "../components/caregiver/ICFProgressDashboard";
 
 export default function Caregiver() {
   const [user, setUser] = useState(null);
@@ -166,10 +167,14 @@ export default function Caregiver() {
 
         {/* Dashboard Tabs */}
         <Tabs defaultValue="alerts" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="alerts" className="flex items-center gap-2">
               <AlertTriangle className="w-4 h-4" />
               Waarschuwingen
+            </TabsTrigger>
+            <TabsTrigger value="icf" className="flex items-center gap-2">
+              <Brain className="w-4 h-4" />
+              ICF Voortgang
             </TabsTrigger>
             <TabsTrigger value="analytics" className="flex items-center gap-2">
               <BarChart3 className="w-4 h-4" />
@@ -187,6 +192,10 @@ export default function Caregiver() {
 
           <TabsContent value="alerts">
             <AlertSystem />
+          </TabsContent>
+
+          <TabsContent value="icf">
+            <ICFProgressDashboard userId={user?.id} />
           </TabsContent>
 
           <TabsContent value="analytics">

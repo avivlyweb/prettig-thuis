@@ -2,9 +2,17 @@ import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { RotateCcw, Volume2, ClipboardList, Heart } from "lucide-react";
+import { RotateCcw, Volume2, ClipboardList, Heart, Footprints } from "lucide-react";
+import ICFQuestSuggestions from "@/components/compass/ICFQuestSuggestions";
+import { useState, useEffect } from "react";
+import { base44 } from "@/api/base44Client";
 
 export default function Home() {
+  const [userId, setUserId] = useState(null);
+  useEffect(() => {
+    base44.auth.me().then(u => setUserId(u?.id)).catch(() => {});
+  }, []);
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
       {/* Hero Section */}
@@ -68,6 +76,17 @@ export default function Home() {
             </CardContent>
           </Card>
         </div>
+      </div>
+
+      {/* ICF Personalized Quest Suggestions */}
+      <div className="max-w-2xl mx-auto px-4 pb-8">
+        <div className="mb-4 flex items-center gap-2">
+          <Footprints className="w-5 h-5 text-purple-600" />
+          <h2 className="font-inter font-semibold text-xl text-gray-900">Gepersonaliseerde activiteiten</h2>
+        </div>
+        <ICFQuestSuggestions userId={userId} onQuestSelect={(quest) => {
+          window.location.href = createPageUrl("Routines");
+        }} />
       </div>
 
       {/* Secondary CTA */}
