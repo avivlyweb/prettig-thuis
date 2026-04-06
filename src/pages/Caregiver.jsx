@@ -17,8 +17,10 @@ import {
   Code,
   Activity,
   Brain,
+  TrendingUp,
 } from "lucide-react";
 import AlertSystem from "../components/caregiver/AlertSystem";
+import RoutineTrendsTab from "../components/caregiver/RoutineTrendsTab";
 import ICFProgressDashboard from "../components/caregiver/ICFProgressDashboard";
 
 export default function Caregiver() {
@@ -167,10 +169,14 @@ export default function Caregiver() {
 
         {/* Dashboard Tabs */}
         <Tabs defaultValue="alerts" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="alerts" className="flex items-center gap-2">
               <AlertTriangle className="w-4 h-4" />
               Waarschuwingen
+            </TabsTrigger>
+            <TabsTrigger value="trends" className="flex items-center gap-2">
+              <TrendingUp className="w-4 h-4" />
+              Trends & AI
             </TabsTrigger>
             <TabsTrigger value="icf" className="flex items-center gap-2">
               <Brain className="w-4 h-4" />
@@ -192,6 +198,10 @@ export default function Caregiver() {
 
           <TabsContent value="alerts">
             <AlertSystem />
+          </TabsContent>
+
+          <TabsContent value="trends">
+            <RoutineTrendsTab />
           </TabsContent>
 
           <TabsContent value="icf">

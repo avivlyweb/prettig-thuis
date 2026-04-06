@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { saveCareEvent } from "@/lib/careEvents";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -118,6 +119,14 @@ export default function StepByStepRoutine() {
         }
       }
 
+      if (data.is_complete) {
+        saveCareEvent({ type: "routine_completed", data: { routine_type: routineType, total_steps: data.total_steps, lang }, icf_tags: [data.icf_code] });
+      } else if (data.escalation) {
+        saveCareEvent({ type: "routine_escalation", data: { routine_type: routineType, step: data.current_step, escalation: data.escalation, lang }, icf_tags: [data.icf_code] });
+      } else if (data.current_step > 0) {
+        saveCareEvent({ type: "routine_step", data: { routine_type: routineType, step: data.current_step, lang }, icf_tags: [data.icf_code] });
+      }
+
       if (data.needs_caregiver_alert) setCaregiverAlert(true);
     } catch (err) {
       console.error("Routine agent error:", err);
@@ -131,6 +140,7 @@ export default function StepByStepRoutine() {
     setHistory([]);
     setStepData(null);
     setCaregiverAlert(false);
+    saveCareEvent({ type: "routine_started", data: { routine_type: routine.type, lang }, icf_tags: [routine.icf] });
     await callAgent(routine.type, 0);
   };
 

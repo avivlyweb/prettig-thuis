@@ -1,0 +1,52 @@
+{
+  "name": "CareEvent",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "ID of the patient/user"
+    },
+    "type": {
+      "type": "string",
+      "description": "Event type",
+      "enum": [
+        "routine_started",
+        "routine_step",
+        "routine_completed",
+        "routine_escalation",
+        "quest_started",
+        "checkin",
+        "album_viewed",
+        "voice_session"
+      ]
+    },
+    "icf_tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "ICF codes related to this event"
+    },
+    "confidence": {
+      "type": "number",
+      "description": "Confidence score 0-1"
+    },
+    "source": {
+      "type": "string",
+      "description": "Which part of the app triggered this"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the event occurred"
+    },
+    "data": {
+      "type": "object",
+      "description": "Flexible event-specific data (routine_type, step, escalation, etc.)"
+    }
+  },
+  "required": [
+    "type",
+    "timestamp"
+  ]
+}
