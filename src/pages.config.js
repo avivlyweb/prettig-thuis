@@ -1,4 +1,5 @@
 import Home from './pages/Home';
+import PatientDevice from './pages/PatientDevice';
 import Routines from './pages/Routines';
 import MemoryAlbum from './pages/MemoryAlbum';
 import Caregiver from './pages/Caregiver';
@@ -24,6 +25,7 @@ import __Layout from './Layout.jsx';
 
 export const PAGES = {
     "Home": Home,
+    "PatientDevice": PatientDevice,
     "Routines": Routines,
     "MemoryAlbum": MemoryAlbum,
     "Caregiver": Caregiver,
