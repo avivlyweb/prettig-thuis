@@ -120,3 +120,41 @@ npm ci
 npm run dev
 npx eslint src/components/voice/RealtimeICFInterviewer.jsx src/lib/icfClinicalReasoning.js src/pages/ICFInterviewDashboard.jsx
 ```
+
+---
+
+# Session Progress Handoff
+
+Date: 2026-04-27  
+Repo: `prettig-thuis`
+
+## Patient-device prototype status
+
+Implemented a separate `PatientDevice` route for the screen-primary Prettig Thuis prototype. The existing `Home` route was not replaced.
+
+What was added:
+- Pure patient-device state helper in `src/lib/patientDeviceFlow.js`
+- Node test coverage in `src/lib/patientDeviceFlow.test.mjs`
+- New route/page in `src/pages/PatientDevice.jsx`
+- Route registration in `src/pages.config.js`
+- Demo navigation entry under `Meer Opties > Extra > Thuis Scherm`
+
+Current patient flow:
+- Home has exactly two patient-facing CTAs: `Start hulp` and `Ik heb hulp nodig`
+- `Start hulp` opens one deterministic time-of-day suggestion with `Ja, graag` and `Niet nu`
+- `Ik heb hulp nodig` opens a dignity-preserving assist choice: `Bel contactpersoon` or `Praat met mij`
+- `Bel contactpersoon` asks for confirmation before simulated calling
+- `Praat met mij` shows calm support copy
+
+Verification completed:
+- `node --test src/lib/patientDeviceFlow.test.mjs`
+- `BASE44_LEGACY_SDK_IMPORTS=true npm run build`
+
+## Still future work
+
+- Connect `Start hulp` to real routine context, caregiver notes, and recent activity history
+- Add voice-first fallback for `Anders`
+- Persist patient-device events with `saveCareEvent`
+- Integrate caregiver escalation rules for distress/risk
+- Replace simulated calling with a real contact/calling integration if required
+- Do not expose ICF/FAC/clinical language on this patient route
