@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { motion, useAnimation, useSpring, useTransform } from "framer-motion";
+import { motion, useAnimation, useSpring } from "framer-motion";
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 function polarToXY(cx, cy, r, angleDeg) {
