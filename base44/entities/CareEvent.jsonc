@@ -17,7 +17,20 @@
         "quest_started",
         "checkin",
         "album_viewed",
-        "voice_session"
+        "voice_session",
+        "greeting",
+        "orientation_check",
+        "preference_choice",
+        "memory_view",
+        "compass_choice",
+        "adl_step",
+        "adl_complete",
+        "medication_prompt",
+        "hydration_prompt",
+        "safety_prompt",
+        "incident",
+        "goodbye",
+        "sleep_mode"
       ]
     },
     "icf_tags": {

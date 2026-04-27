@@ -48,6 +48,19 @@ test("need help opens assist choice instead of escalating immediately", () => {
   assert.equal(state.lastAction, "need_help");
 });
 
+test("confirmed start advances beyond contextual confirmation", () => {
+  const startState = patientDeviceReducer(getInitialPatientDeviceState(), {
+    type: "START_HELP",
+    now: new Date("2026-04-27T09:00:00"),
+  });
+  const confirmedState = patientDeviceReducer(startState, {
+    type: "START_CONFIRMED",
+  });
+
+  assert.equal(confirmedState.view, "routine_started");
+  assert.equal(confirmedState.lastAction, "start_confirmed");
+});
+
 test("assist choice can enter talk support and call confirmation", () => {
   const assistState = patientDeviceReducer(getInitialPatientDeviceState(), {
     type: "NEED_HELP",

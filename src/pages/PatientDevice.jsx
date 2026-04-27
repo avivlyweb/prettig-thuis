@@ -77,13 +77,34 @@ export default function PatientDevice() {
             {state.selectedSuggestion.message}
           </p>
           <div className="grid gap-4">
-            <button type="button" className={primaryButton}>
+            <button
+              type="button"
+              onClick={() => dispatch({ type: "START_CONFIRMED" })}
+              className={primaryButton}
+            >
               {state.selectedSuggestion.primaryAction}
             </button>
             <button type="button" onClick={goHome} className={secondaryButton}>
               {state.selectedSuggestion.secondaryAction}
             </button>
           </div>
+        </section>
+      </Shell>
+    );
+  }
+
+  if (state.view === PATIENT_DEVICE_VIEWS.ROUTINE_STARTED) {
+    return (
+      <Shell showBack onBack={goHome}>
+        <section className="w-full max-w-3xl rounded-[2.5rem] bg-white/75 p-8 text-center shadow-2xl shadow-stone-300/40">
+          <CheckCircle2 className="mx-auto mb-6 h-20 w-20 text-[#1f5f55]" />
+          <h1 className="mb-5 text-5xl font-black">We beginnen rustig</h1>
+          <p className="mb-8 text-3xl font-semibold leading-snug">
+            Fijn. Neem de tijd. We doen dit stap voor stap.
+          </p>
+          <button type="button" onClick={goHome} className={secondaryButton}>
+            Terug naar begin
+          </button>
         </section>
       </Shell>
     );
@@ -147,7 +168,7 @@ export default function PatientDevice() {
           <Phone className="mx-auto mb-6 h-20 w-20 text-[#1f5f55]" />
           <h1 className="mb-5 text-5xl font-black">Contactpersoon bellen?</h1>
           <p className="mb-8 text-3xl font-semibold leading-snug">
-            We bellen pas als u bevestigt.
+            Dit is nu nog een test. Er wordt nog niemand echt gebeld.
           </p>
           <div className="grid gap-4">
             <button
@@ -171,9 +192,9 @@ export default function PatientDevice() {
       <Shell showBack onBack={goHome}>
         <section className="w-full max-w-3xl rounded-[2.5rem] bg-white/75 p-8 text-center shadow-2xl shadow-stone-300/40">
           <ShieldCheck className="mx-auto mb-6 h-20 w-20 text-[#1f5f55]" />
-          <h1 className="mb-5 text-5xl font-black">We bellen nu</h1>
+          <h1 className="mb-5 text-5xl font-black">Test: bellen gestart</h1>
           <p className="mb-8 text-3xl font-semibold leading-snug">
-            Blijf rustig zitten. Er komt hulp.
+            In deze test wordt geen echte contactpersoon gebeld.
           </p>
           <button type="button" onClick={goHome} className={secondaryButton}>
             Terug naar begin

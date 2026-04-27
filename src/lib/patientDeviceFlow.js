@@ -1,6 +1,7 @@
 export const PATIENT_DEVICE_VIEWS = {
   HOME: "home",
   CONTEXTUAL_CONFIRMATION: "contextual_confirmation",
+  ROUTINE_STARTED: "routine_started",
   ASSIST_CHOICE: "assist_choice",
   TALK_SUPPORT: "talk_support",
   CALL_CONFIRM: "call_confirm",
@@ -59,6 +60,12 @@ export function patientDeviceReducer(state, action) {
         ...state,
         view: PATIENT_DEVICE_VIEWS.ASSIST_CHOICE,
         lastAction: "need_help",
+      };
+    case "START_CONFIRMED":
+      return {
+        ...state,
+        view: PATIENT_DEVICE_VIEWS.ROUTINE_STARTED,
+        lastAction: "start_confirmed",
       };
     case "TALK_WITH_ME":
       return {
