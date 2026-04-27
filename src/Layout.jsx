@@ -3,6 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import {
   Home,
+  Tablet,
   RotateCcw,
   Camera,
   Users,
@@ -79,6 +80,7 @@ export default function Layout({ children, currentPageName }) {
         { name: "Over Ons", url: createPageUrl("About"), icon: Sparkles },
         { name: "Videos", url: createPageUrl("Videos"), icon: Video },
         { name: "Mijn 3D Thuis", url: createPageUrl("My3DHome"), icon: Box },
+        { name: "Thuis Scherm", url: createPageUrl("PatientDevice"), icon: Tablet },
         { name: "Privacy", url: createPageUrl("Privacy"), icon: Shield },
       ]
     },
