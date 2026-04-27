@@ -61,14 +61,14 @@ test("confirmed start advances beyond contextual confirmation", () => {
   assert.equal(confirmedState.lastAction, "start_confirmed");
 });
 
-test("assist choice can enter talk support and call confirmation", () => {
+test("assist choice can enter patient voice and call confirmation", () => {
   const assistState = patientDeviceReducer(getInitialPatientDeviceState(), {
     type: "NEED_HELP",
   });
 
   assert.equal(
     patientDeviceReducer(assistState, { type: "TALK_WITH_ME" }).view,
-    "talk_support"
+    "patient_voice"
   );
   assert.equal(
     patientDeviceReducer(assistState, { type: "CALL_CONTACT" }).view,

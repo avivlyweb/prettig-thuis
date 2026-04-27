@@ -18,8 +18,9 @@ Deno.serve(async (req) => {
   }
 
   const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
-  const realtimeModel = Deno.env.get("OPENAI_REALTIME_MODEL") || "gpt-realtime";
-  const realtimeVoice = Deno.env.get("OPENAI_REALTIME_VOICE") || "alloy";
+  const configuredRealtimeModel = Deno.env.get("OPENAI_REALTIME_MODEL");
+  const realtimeModel = configuredRealtimeModel || "gpt-realtime-1.5";
+  const realtimeVoice = Deno.env.get("OPENAI_REALTIME_VOICE") || "cedar";
 
   if (!OPENAI_API_KEY) {
     return new Response(
@@ -33,7 +34,7 @@ Deno.serve(async (req) => {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort("request_timeout"), 12000);
 
-    const response = await fetch("https://api.openai.com/v1/realtime/client_secrets", {
+    const requestClientSecret = (model: string) => fetch("https://api.openai.com/v1/realtime/client_secrets", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${OPENAI_API_KEY}`,
@@ -52,6 +53,13 @@ Deno.serve(async (req) => {
         },
       }),
     });
+
+    let response = await requestClientSecret(realtimeModel);
+    if (!response.ok && !configuredRealtimeModel && realtimeModel !== "gpt-realtime") {
+      const firstErrorText = await response.text();
+      console.warn(`Realtime model ${realtimeModel} failed, falling back to gpt-realtime:`, firstErrorText);
+      response = await requestClientSecret("gpt-realtime");
+    }
     clearTimeout(timeoutId);
 
     if (!response.ok) {

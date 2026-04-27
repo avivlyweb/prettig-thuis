@@ -14,6 +14,7 @@ import {
   patientDeviceReducer,
   PATIENT_DEVICE_VIEWS,
 } from "@/lib/patientDeviceFlow";
+import PatientVoiceCompanion from "@/components/voice/PatientVoiceCompanion";
 
 const primaryButton =
   "w-full rounded-[2rem] bg-[#1f5f55] px-8 py-8 text-3xl font-bold text-white shadow-xl shadow-emerald-950/20 transition hover:bg-[#184c44] focus:outline-none focus:ring-4 focus:ring-[#f8c784]";
@@ -157,6 +158,14 @@ export default function PatientDevice() {
             Terug naar begin
           </button>
         </section>
+      </Shell>
+    );
+  }
+
+  if (state.view === PATIENT_DEVICE_VIEWS.PATIENT_VOICE) {
+    return (
+      <Shell showBack onBack={goHome}>
+        <PatientVoiceCompanion onBack={goHome} />
       </Shell>
     );
   }
