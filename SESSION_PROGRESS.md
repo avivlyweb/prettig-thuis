@@ -120,3 +120,150 @@ npm ci
 npm run dev
 npx eslint src/components/voice/RealtimeICFInterviewer.jsx src/lib/icfClinicalReasoning.js src/pages/ICFInterviewDashboard.jsx
 ```
+
+---
+
+# Session Progress Handoff
+
+Date: 2026-04-27  
+Repo: `prettig-thuis`
+
+## Goal of this session
+
+Pause implementation work and align on patient-first product direction, clinical fit, and prototype UX for people with mild/early dementia.
+
+## What was completed
+
+### 1) Environment and access check
+- Confirmed local repo clone at `/Users/avivly/Downloads/prettig-thuis-git`
+- Confirmed Git remote and clean branch state
+- Confirmed Base44 CLI auth and public app reachability
+- Confirmed local build works with:
+  - `BASE44_LEGACY_SDK_IMPORTS=true npm run build`
+
+### 2) Read-only 3-agent review
+- Ran three parallel read-only reviews:
+  - backend/model/data
+  - frontend flow and ICF data flow
+  - UI/UX fit for patient category
+- No code changes, no commit, no push
+
+### 3) Current model and data findings
+- Realtime voice uses `gpt-realtime` by default via `createOpenAISession`
+- Realtime transcription uses `whisper-1`
+- Several functions use `gpt-4o-mini`, `gpt-4o-mini-tts`, and `tts-1-hd`
+- `analyzeConversationForICF` uses `base44.integrations.Core.InvokeLLM`, but the effective model is not pinned in repo code
+- Current clinical logic is partially evidence-informed but still largely heuristic/rule-based
+
+### 4) Product and clinical direction agreed in discussion
+- The app should support both:
+  - patient mode: dementia daily-routine assistant
+  - caregiver/clinical mode: ICF assessment and insight layer
+- These should not be mixed into one dense patient-facing experience
+- Patient side must stay calm, simple, and non-clinical
+- Clinical/ICF/FAC detail belongs to caregiver/professional surfaces
+
+### 5) Local research/material review
+- Reviewed product/pitch PDFs in `/Users/avivly/Downloads/PrettigThuis `
+- Reviewed local A-PROOF / ICF materials in `/Users/avivly/Downloads/aproof website/aproof 2`
+- Most useful local structured assets identified:
+  - `comprehensive_elderly_dialogues_dutch.json`
+  - `enhanced_icf_dialogues.json`
+  - `icf_fac_master_knowledge_base.json`
+  - `icf_kngf_richtlijn2025_integrated_knowledge_base.json`
+  - `12_enhanced_fall_prevention_2025.json`
+  - `icf_categories_complete.json`
+- Conclusion:
+  - pitch PDFs are useful for target-user/product narrative
+  - local A-PROOF/elderly ICF JSONs are more useful for clinical KB/eval direction
+
+### 6) Patient UX direction agreed
+- Prototype should be `screen-primary` first (Nest Hub/tablet style)
+- But long-term architecture should still allow switching/degrading to audio-first or audio-only
+- Home screen should have exactly 2 primary CTAs:
+  - `Start hulp`
+  - `Ik heb hulp nodig`
+
+### 7) `Ik heb hulp nodig` flow agreed
+- Tapping `Ik heb hulp nodig` should NOT immediately alert caregiver
+- It should first open a short assist screen with 2 choices:
+  - `Bel contactpersoon`
+  - `Praat met mij`
+- Rationale:
+  - preserves dignity
+  - avoids unnecessary escalation
+  - still gives fast access to help
+
+### 8) `Start hulp` decision agreed
+- `Start hulp` should be a contextual trigger, not a menu opener
+- It should use hybrid-proactive initiation:
+  1. check time/context/history
+  2. suggest the most relevant next routine step
+  3. ask for simple confirmation
+- Example:
+  - Voice: `Goedemorgen. Het is tijd voor uw ontbijt en medicijnen. Zullen we beginnen?`
+  - Screen:
+    - primary: `Ja, graag`
+    - secondary: `Anders?` or `Niet nu`
+- No patient-facing routine menu like:
+  - `Ochtend`
+  - `Medicijnen`
+  - `Eten`
+
+### 9) Evidence/citation caution
+- Design direction is sound, but several externally supplied PMIDs were not verified as matching the claims
+- Safe conclusion:
+  - keep the UX decision
+  - re-verify all clinical citations before using them in challenge submission/presentation as evidence
+
+## Current design baseline when resuming
+
+### Patient-side structure
+1. `Home`
+   - `Start hulp`
+   - `Ik heb hulp nodig`
+2. `Start hulp`
+   - contextual next-step suggestion
+   - one large confirm CTA
+   - one small correction/snooze option
+3. `Ik heb hulp nodig`
+   - `Bel contactpersoon`
+   - `Praat met mij`
+4. `Praat met mij`
+   - calming structured support
+   - can escalate if distress/risk increases
+5. `Bel contactpersoon`
+   - short confirmation/cancel window
+6. `Offline/Error`
+   - single calm fallback state
+
+## Open questions / next design tasks
+
+1. Define exact patient screens and states:
+- idle/home
+- contextual confirmation
+- assist choice
+- talking/calm support
+- contact calling
+- offline/error
+
+2. Decide whether `Anders?` should:
+- open a tiny 2-option correction step, or
+- trigger a voice-first fallback prompt
+
+3. Define caregiver dashboard around:
+- traffic light alert model
+- notes / memory board
+- routine adherence
+- emergency/help events
+
+4. Separate prototype surfaces clearly:
+- patient device UI
+- caregiver dashboard
+- clinical/ICF layer
+
+## Resume keyword
+
+Use this exact word to resume this thread:
+
+`MEDISCHPUNT-RESUME`
