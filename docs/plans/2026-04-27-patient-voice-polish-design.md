@@ -31,7 +31,9 @@ If the patient pauses, the UI should remain calm. After a longer silence, it sho
 
 `Neem rustig de tijd. Ik luister.`
 
-The assistant prompt should use short Dutch sentences, avoid open-ended questions where possible, and offer one small next step.
+The assistant prompt should use short Dutch sentences, avoid open-ended questions where possible, and offer one small next step. English is available as a secondary simple-language mode, but Dutch remains the default.
+
+Patient speech should be logged invisibly as care events with ICF tags where possible. The patient never sees the classification layer.
 
 ## Builder Voice Screens
 
@@ -56,6 +58,5 @@ Use a stronger default if available:
 ## Non-Goals
 
 - No full Agents SDK migration.
-- No caregiver event logging from patient voice yet.
 - No real emergency/call escalation.
 - No clinical terms on the patient voice screen.

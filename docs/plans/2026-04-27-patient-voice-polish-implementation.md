@@ -27,6 +27,8 @@ Requirements:
 - Uses existing `createOpenAISession`
 - WebRTC direct Realtime connection
 - Simple patient UI only
+- Dutch first, simple English fallback
+- Hidden ICF/care-event logging for patient speech
 - Voice `cedar`
 - VAD silence duration around 2200ms
 - Large `Stop`, `Nog een keer`, `Terug` controls
@@ -47,8 +49,8 @@ Update `base44/functions/createOpenAISession/entry.ts` default model to `gpt-rea
 Run:
 
 ```bash
-node --test src/lib/patientDeviceFlow.test.mjs src/lib/patientVoiceExperience.test.mjs
-npm run build -- --configLoader runner
+node --test src/lib/patientDeviceFlow.test.mjs src/lib/patientVoiceExperience.test.mjs src/lib/patientDayEvents.test.mjs
+npm run build
 npm run lint
 ```
 

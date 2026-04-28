@@ -23,10 +23,26 @@ import AlertSystem from "../components/caregiver/AlertSystem";
 import RoutineTrendsTab from "../components/caregiver/RoutineTrendsTab";
 import ICFProgressDashboard from "../components/caregiver/ICFProgressDashboard";
 
+const DEFAULT_DEMO_PATIENT_ID = "demo_patient";
+
+function getRequestedMonitorId(fallbackUserId) {
+  if (typeof window === "undefined") return fallbackUserId || DEFAULT_DEMO_PATIENT_ID;
+  const params = new URLSearchParams(window.location.search);
+  return (
+    params.get("patient_id")
+    || params.get("user_id")
+    || params.get("userId")
+    || fallbackUserId
+    || DEFAULT_DEMO_PATIENT_ID
+  );
+}
+
 export default function Caregiver() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [monitoredUserId, setMonitoredUserId] = useState("");
+  const [patientIdDraft, setPatientIdDraft] = useState("");
   const [analytics, setAnalytics] = useState({
     todayEvents: 0,
     speechCheckins: 0,
@@ -39,13 +55,20 @@ export default function Caregiver() {
     checkAuthentication();
   }, []);
 
+  useEffect(() => {
+    if (!isAuthenticated || !monitoredUserId) return;
+    loadAnalytics(monitoredUserId);
+  }, [isAuthenticated, monitoredUserId]);
+
   const checkAuthentication = async () => {
     try {
       const currentUser = await User.me();
       if (currentUser?.caregiver_mode) {
+        const requestedMonitorId = getRequestedMonitorId(currentUser.id);
         setUser(currentUser);
+        setMonitoredUserId(requestedMonitorId);
+        setPatientIdDraft(requestedMonitorId);
         setIsAuthenticated(true);
-        await loadAnalytics(currentUser.id);
       }
     } catch {
       setIsAuthenticated(false);
@@ -62,7 +85,10 @@ export default function Caregiver() {
 
       const today = new Date().toDateString();
       const todayEvents = events.filter((event) => new Date(event.timestamp).toDateString() === today);
-      const speechCheckins = events.filter((event) => event.type === "checkin" && (event.speaker === "user" || event.data?.speaker === "user"));
+      const speechCheckins = events.filter((event) => (
+        event.type === "checkin"
+        && ["user", "patient"].includes(event.speaker || event.data?.speaker)
+      ));
 
       const codeSet = new Set();
       for (const event of events) {
@@ -92,6 +118,13 @@ export default function Caregiver() {
     } catch (error) {
       console.error("Error loading caregiver analytics:", error);
     }
+  };
+
+  const applyMonitorId = (nextUserId) => {
+    const normalized = String(nextUserId || "").trim();
+    if (!normalized) return;
+    setMonitoredUserId(normalized);
+    setPatientIdDraft(normalized);
   };
 
   const enableCaregiverMode = async () => {
@@ -167,6 +200,34 @@ export default function Caregiver() {
           </p>
         </div>
 
+        <Card className="mb-6 border-2 border-emerald-100 rounded-2xl bg-emerald-50/60">
+          <CardContent className="p-4">
+            <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+              <div>
+                <p className="font-inter font-semibold text-emerald-950">Patiëntmonitor</p>
+                <p className="font-lato text-sm text-emerald-800">
+                  Volgt nu: <span className="font-semibold">{monitoredUserId || "geen patiënt gekozen"}</span>
+                </p>
+              </div>
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <input
+                  value={patientIdDraft}
+                  onChange={(event) => setPatientIdDraft(event.target.value)}
+                  className="rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm text-gray-900"
+                  placeholder="patient_id of user_id"
+                  aria-label="Patiënt id om te monitoren"
+                />
+                <Button type="button" onClick={() => applyMonitorId(patientIdDraft)} variant="outline">
+                  Monitor deze patiënt
+                </Button>
+                <Button type="button" onClick={() => applyMonitorId(DEFAULT_DEMO_PATIENT_ID)} variant="outline">
+                  Demo patiënt
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Dashboard Tabs */}
         <Tabs defaultValue="alerts" className="space-y-6">
           <TabsList className="grid w-full grid-cols-6">
@@ -197,15 +258,15 @@ export default function Caregiver() {
           </TabsList>
 
           <TabsContent value="alerts">
-            <AlertSystem userId={user?.id} />
+            <AlertSystem userId={monitoredUserId || user?.id} />
           </TabsContent>
 
           <TabsContent value="trends">
-            <RoutineTrendsTab userId={user?.id} />
+            <RoutineTrendsTab userId={monitoredUserId || user?.id} />
           </TabsContent>
 
           <TabsContent value="icf">
-            <ICFProgressDashboard userId={user?.id} />
+            <ICFProgressDashboard userId={monitoredUserId || user?.id} />
           </TabsContent>
 
           <TabsContent value="analytics">

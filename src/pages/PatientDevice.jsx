@@ -16,6 +16,8 @@ import {
 } from "@/lib/patientDeviceFlow";
 import PatientVoiceCompanion from "@/components/voice/PatientVoiceCompanion";
 
+const DEFAULT_PATIENT_ID = "demo_patient";
+
 const primaryButton =
   "w-full rounded-[2rem] bg-[#1f5f55] px-8 py-8 text-3xl font-bold text-white shadow-xl shadow-emerald-950/20 transition hover:bg-[#184c44] focus:outline-none focus:ring-4 focus:ring-[#f8c784]";
 
@@ -56,6 +58,14 @@ function Shell({ children, title = "Prettig Thuis", showBack, onBack }) {
 }
 
 export default function PatientDevice() {
+  const patientId =
+    typeof window === "undefined"
+      ? DEFAULT_PATIENT_ID
+      : new URLSearchParams(window.location.search).get("patient_id")
+        || new URLSearchParams(window.location.search).get("user_id")
+        || new URLSearchParams(window.location.search).get("userId")
+        || DEFAULT_PATIENT_ID;
+
   const [state, dispatch] = useReducer(
     patientDeviceReducer,
     undefined,
@@ -165,7 +175,7 @@ export default function PatientDevice() {
   if (state.view === PATIENT_DEVICE_VIEWS.PATIENT_VOICE) {
     return (
       <Shell showBack onBack={goHome}>
-        <PatientVoiceCompanion onBack={goHome} />
+        <PatientVoiceCompanion onBack={goHome} userId={patientId} />
       </Shell>
     );
   }

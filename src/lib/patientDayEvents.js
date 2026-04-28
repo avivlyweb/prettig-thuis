@@ -202,3 +202,12 @@ export function buildPatientDayEventPlan({
     },
   }));
 }
+
+export function buildPatientDayEvents({
+  userId,
+  startDate,
+  date = startDate || new Date(),
+  source = DEFAULT_SOURCE,
+} = {}) {
+  return buildPatientDayEventPlan({ userId, date, source });
+}

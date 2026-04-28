@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { buildPatientDayEventPlan } from "./patientDayEvents.js";
+import {
+  buildPatientDayEventPlan,
+  buildPatientDayEvents,
+} from "./patientDayEvents.js";
 
 test("buildPatientDayEventPlan creates a realistic ordered day of CareEvent rows", () => {
   const events = buildPatientDayEventPlan({
@@ -53,4 +56,14 @@ test("generated patient day events satisfy the shared CareEvent contract", () =>
   assert.ok(taggedEvents.length >= 6);
   assert.ok(taggedEvents.some((event) => event.icf_tags.includes("b144")));
   assert.ok(taggedEvents.some((event) => event.icf_tags.includes("d570")));
+});
+
+test("buildPatientDayEvents keeps the simulator contract stable", () => {
+  const events = buildPatientDayEvents({
+    userId: "demo_patient",
+    startDate: "2026-04-28",
+  });
+
+  assert.equal(events[0].user_id, "demo_patient");
+  assert.equal(events[0].timestamp.startsWith("2026-04-28T"), true);
 });
