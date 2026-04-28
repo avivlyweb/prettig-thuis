@@ -22,18 +22,18 @@ const ROUTINE_LABELS = {
   light_housework: "Huishouden",
 };
 
-export default function RoutineTrendsTab() {
+export default function RoutineTrendsTab({ userId } = {}) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [userId]);
 
   const load = async () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await caregiverInsights({});
+      const res = await caregiverInsights({ userId });
       setData(res.data || res);
     } catch (e) {
       setError(e.message);

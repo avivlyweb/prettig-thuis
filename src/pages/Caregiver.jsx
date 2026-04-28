@@ -197,11 +197,11 @@ export default function Caregiver() {
           </TabsList>
 
           <TabsContent value="alerts">
-            <AlertSystem />
+            <AlertSystem userId={user?.id} />
           </TabsContent>
 
           <TabsContent value="trends">
-            <RoutineTrendsTab />
+            <RoutineTrendsTab userId={user?.id} />
           </TabsContent>
 
           <TabsContent value="icf">

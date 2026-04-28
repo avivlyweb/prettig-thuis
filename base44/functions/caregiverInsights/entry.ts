@@ -9,9 +9,18 @@ Deno.serve(async (req) => {
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
+    const body = await req.json().catch(() => ({}));
+    const requestedUserId = typeof body?.userId === "string" ? body.userId.trim() : "";
+
     // Load last 30 days of care events
-    const careEvents = await base44.asServiceRole.entities.CareEvent.list("-created_date", 500).catch(() => []);
-    const interviews = await base44.asServiceRole.entities.ICFInterviewLog.list("-created_date", 50).catch(() => []);
+    const allCareEvents = await base44.asServiceRole.entities.CareEvent.list("-created_date", 500).catch(() => []);
+    const allInterviews = await base44.asServiceRole.entities.ICFInterviewLog.list("-created_date", 50).catch(() => []);
+    const matchesRequestedUser = (item) => {
+      if (!requestedUserId) return true;
+      return item?.user_id === requestedUserId || item?.data?.user_id === requestedUserId;
+    };
+    const careEvents = allCareEvents.filter(matchesRequestedUser);
+    const interviews = allInterviews.filter(matchesRequestedUser);
 
     // Build summary for GPT
     const now = new Date();

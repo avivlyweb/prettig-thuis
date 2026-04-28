@@ -17,9 +17,19 @@ import {
   markCaregiverAlertRead,
 } from '@/lib/careEvents';
 
-export default function AlertSystem() {
+export default function AlertSystem({ userId } = {}) {
   const [alerts, setAlerts] = useState([]);
   const [careEvents, setCareEvents] = useState([]);
+
+  const loadAlerts = async () => {
+    const loaded = await listCaregiverAlerts({ limit: 300, userId });
+    setAlerts(loaded);
+  };
+
+  const loadCareEvents = async () => {
+    const loaded = await listCareEvents({ limit: 300, userId });
+    setCareEvents(loaded);
+  };
 
   useEffect(() => {
     loadAlerts();
@@ -32,17 +42,7 @@ export default function AlertSystem() {
     }, 30000);
 
     return () => clearInterval(interval);
-  }, []);
-
-  const loadAlerts = async () => {
-    const loaded = await listCaregiverAlerts({ limit: 300 });
-    setAlerts(loaded);
-  };
-
-  const loadCareEvents = async () => {
-    const loaded = await listCareEvents({ limit: 300 });
-    setCareEvents(loaded);
-  };
+  }, [userId]);
 
   const markAlertRead = async (alert) => {
     if (!alert) return;
