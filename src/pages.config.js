@@ -20,6 +20,7 @@ import AdminKNGFUpload from './pages/AdminKNGFUpload';
 import AdminICFCategoriesUpload from './pages/AdminICFCategoriesUpload';
 import AdminFallPreventionUpload from './pages/AdminFallPreventionUpload';
 import AdminTrainingDatasetUpload from './pages/AdminTrainingDatasetUpload';
+import PatientDaySimulator from './pages/PatientDaySimulator';
 import __Layout from './Layout.jsx';
 
 
@@ -46,6 +47,7 @@ export const PAGES = {
     "AdminICFCategoriesUpload": AdminICFCategoriesUpload,
     "AdminFallPreventionUpload": AdminFallPreventionUpload,
     "AdminTrainingDatasetUpload": AdminTrainingDatasetUpload,
+    "PatientDaySimulator": PatientDaySimulator,
 }
 
 export const pagesConfig = {

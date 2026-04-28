@@ -18,7 +18,8 @@ import {
   Menu,
   ChevronDown,
   Video,
-  Footprints
+  Footprints,
+  Activity
 } from "lucide-react";
 import {
   Sheet,
@@ -72,6 +73,7 @@ export default function Layout({ children, currentPageName }) {
       items: [
         { name: "ICF Upload", url: createPageUrl("ICFUpload"), icon: Upload },
         { name: "ICF Dashboard", url: createPageUrl("ICFInterviewDashboard"), icon: BarChart3 },
+        { name: "Day Simulator", url: createPageUrl("PatientDaySimulator"), icon: Activity },
       ]
     },
     { 
