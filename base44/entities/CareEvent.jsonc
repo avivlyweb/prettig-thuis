@@ -59,7 +59,12 @@
     }
   },
   "required": [
+    "user_id",
     "type",
-    "timestamp"
+    "timestamp",
+    "icf_tags",
+    "confidence",
+    "source",
+    "data"
   ]
 }
