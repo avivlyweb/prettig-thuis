@@ -14,7 +14,7 @@ import {
 import { uploadICFKnowledgeBase } from "@/functions/uploadICFKnowledgeBase";
 
 export default function AdminKnowledgeBaseUpload() {
-  const [user, setUser] = useState(null);
+  const [_user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [file, setFile] = useState(null);
   const [uploading, setUploading] = useState(false);

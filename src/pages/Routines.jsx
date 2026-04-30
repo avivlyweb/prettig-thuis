@@ -110,8 +110,7 @@ export default function RoutinesPage() {
 
   const handleSpinRequest = () => {
     if (quests.length === 0 || isSpinning || !user) return;
-    // eslint-disable-next-line no-unused-vars
-    
+
     setIsSpinning(true);
 
     // --- NEW: Hyper-Personalized Quest Selection Logic ---

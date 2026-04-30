@@ -141,10 +141,10 @@ export default function CompassPro({ wedges, onSpinStart, onSpinEnd, targetIndex
 
   useEffect(() => {
     if (targetIndex != null) spinTo(targetIndex);
-  }, [targetIndex]); // eslint-disable-line
+  }, [targetIndex, spinTo]);
 
   // ── ambient pulse ring ──
-  const [pulse, setPulse] = useState(0);
+  const [, setPulse] = useState(0);
   useEffect(() => {
     if (!spinning) return;
     const id = setInterval(() => setPulse(p => p + 1), 600);

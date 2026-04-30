@@ -18,7 +18,7 @@ import { generateQuestAudio } from "@/functions/generateQuestAudio";
 import { updateGenericQuests } from "@/functions/updateGenericQuests";
 
 export default function AdminQuestAudio() {
-  const [user, setUser] = useState(null);
+  const [_user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [quests, setQuests] = useState([]);
   const [isGenerating, setIsGenerating] = useState(false);

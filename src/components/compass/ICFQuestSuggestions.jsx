@@ -32,7 +32,7 @@ export default function ICFQuestSuggestions({ userId, onQuestSelect }) {
         user_id: userId,
       });
       setData(response.data || response);
-    } catch (err) {
+    } catch {
       setError("Kon suggesties niet laden.");
     } finally {
       setLoading(false);

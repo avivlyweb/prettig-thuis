@@ -12,7 +12,7 @@ export default function GoudenMomenten() {
   const [loading, setLoading] = useState(true);
   const [showControls, setShowControls] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
-  const [user, setUser] = useState(null);
+  const [_user, setUser] = useState(null);
   
   const intervalRef = useRef(null);
   const videoRef = useRef(null);

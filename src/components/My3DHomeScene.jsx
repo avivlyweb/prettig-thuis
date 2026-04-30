@@ -443,7 +443,6 @@ export default function My3DHomeScene() {
 
     const handleObjectInteraction = (object) => {
       // Visual feedback
-      const originalColor = object.material.color.getHex();
       const originalEmissive = object.material.emissive.getHex();
       
       object.material.emissive.setRGB(0.3, 0.8, 0.3);

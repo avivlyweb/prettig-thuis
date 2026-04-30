@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 
 export default function AdminTrainingDatasetUpload() {
-  const [user, setUser] = useState(null);
+  const [_user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [file, setFile] = useState(null);
   const [uploading, setUploading] = useState(false);
