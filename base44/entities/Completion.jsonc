@@ -1,0 +1,27 @@
+{
+  "name": "Completion",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "User who completed the quest"
+    },
+    "quest_id": {
+      "type": "string",
+      "description": "Completed quest ID"
+    },
+    "rating_simple": {
+      "type": "string",
+      "enum": [
+        "easy",
+        "okay",
+        "hard"
+      ],
+      "description": "Simple rating"
+    }
+  },
+  "required": [
+    "user_id",
+    "quest_id"
+  ]
+}

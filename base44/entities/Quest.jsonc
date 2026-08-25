@@ -1,0 +1,78 @@
+{
+  "name": "Quest",
+  "type": "object",
+  "properties": {
+    "quest_id": {
+      "type": "string",
+      "description": "Unique quest identifier"
+    },
+    "title": {
+      "type": "string",
+      "description": "Quest title"
+    },
+    "description": {
+      "type": "string",
+      "description": "Quest description"
+    },
+    "icf_codes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "ICF classification codes"
+    },
+    "category": {
+      "type": "string",
+      "description": "Quest category based on Alzheimer Nederland",
+      "enum": [
+        "Nuttig",
+        "Leuk en actief",
+        "Ontspannen en passief",
+        "Uitdagend"
+      ]
+    },
+    "dementia_stage": {
+      "type": "string",
+      "description": "Appropriate dementia stage for this quest",
+      "enum": [
+        "mild",
+        "moderate",
+        "severe"
+      ]
+    },
+    "difficulty": {
+      "type": "string",
+      "enum": [
+        "Low",
+        "Medium",
+        "High"
+      ]
+    },
+    "cooldown_minutes": {
+      "type": "number",
+      "description": "Cooldown period in minutes"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Time of day tags (morning, midday, afternoon, evening, anytime)"
+    },
+    "quest_voice_url": {
+      "type": "string",
+      "description": "URL to pre-generated high-quality audio file for this quest"
+    }
+  },
+  "required": [
+    "quest_id",
+    "title",
+    "description",
+    "icf_codes",
+    "category",
+    "dementia_stage",
+    "difficulty",
+    "cooldown_minutes",
+    "tags"
+  ]
+}

@@ -1,0 +1,79 @@
+{
+  "name": "ICFInterviewLog",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "The ID of the elderly user being interviewed"
+    },
+    "caregiver_id": {
+      "type": "string",
+      "description": "The ID of the healthcare professional (if present)"
+    },
+    "conversation_transcript": {
+      "type": "string",
+      "description": "Full text transcript of the conversation"
+    },
+    "inferred_icf_codes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Array of ICF codes identified during conversation"
+    },
+    "ai_interpretation_patient": {
+      "type": "string",
+      "description": "AI's friendly summary for the patient"
+    },
+    "ai_interpretation_professional": {
+      "type": "string",
+      "description": "AI's detailed clinical interpretation for professionals"
+    },
+    "mode_switches": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "from_mode": {
+            "type": "string",
+            "enum": [
+              "patient",
+              "professional"
+            ]
+          },
+          "to_mode": {
+            "type": "string",
+            "enum": [
+              "patient",
+              "professional"
+            ]
+          }
+        }
+      },
+      "description": "Log of persona switches during conversation"
+    },
+    "session_start": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the interview session started"
+    },
+    "session_end": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the interview session ended"
+    },
+    "session_duration_minutes": {
+      "type": "number",
+      "description": "Duration of the session in minutes"
+    }
+  },
+  "required": [
+    "user_id",
+    "conversation_transcript",
+    "session_start"
+  ]
+}

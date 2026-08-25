@@ -10,7 +10,6 @@
       "type": "string",
       "enum": [
         "info",
-        "attention",
         "warning",
         "urgent"
       ],

@@ -1,0 +1,99 @@
+{
+  "name": "FallPreventionGuideline",
+  "type": "object",
+  "properties": {
+    "guideline_version": {
+      "type": "string",
+      "description": "Version of the fall prevention guideline (e.g., 2.0)"
+    },
+    "guideline_title": {
+      "type": "string",
+      "description": "Title of the guideline"
+    },
+    "guideline_description": {
+      "type": "string",
+      "description": "Description of the guideline content"
+    },
+    "created_date": {
+      "type": "string",
+      "format": "date",
+      "description": "When the guideline was created"
+    },
+    "sources": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Source documents for this guideline"
+    },
+    "total_content_pages": {
+      "type": "number",
+      "description": "Total pages of source content"
+    },
+    "integration_level": {
+      "type": "string",
+      "description": "Level of integration (e.g., comprehensive)"
+    },
+    "section_type": {
+      "type": "string",
+      "enum": [
+        "metadata",
+        "clinical_framework",
+        "risk_assessment",
+        "risk_factors",
+        "assessment_tools",
+        "intervention_strategies",
+        "clinical_workflow",
+        "evidence_framework",
+        "patient_communication",
+        "fac_integration",
+        "complete"
+      ],
+      "description": "Type of section stored"
+    },
+    "section_data": {
+      "type": "object",
+      "description": "The actual data for this section (flexible JSON object)"
+    },
+    "clinical_framework": {
+      "type": "object",
+      "description": "Clinical framework including target population and care settings"
+    },
+    "risk_assessment": {
+      "type": "object",
+      "description": "Risk assessment protocols and triggers"
+    },
+    "risk_factors": {
+      "type": "object",
+      "description": "Patient, medication, environmental, and health risk factors"
+    },
+    "assessment_tools": {
+      "type": "object",
+      "description": "Mobility, balance, medication, and psychological assessment tools"
+    },
+    "intervention_strategies": {
+      "type": "object",
+      "description": "Evidence-based intervention strategies including exercise programs"
+    },
+    "clinical_workflow": {
+      "type": "object",
+      "description": "Clinical workflow from screening to follow-up"
+    },
+    "evidence_framework": {
+      "type": "object",
+      "description": "Evidence grading and confidence scoring framework"
+    },
+    "patient_communication": {
+      "type": "object",
+      "description": "Patient communication strategies and phrasing"
+    },
+    "fac_integration": {
+      "type": "object",
+      "description": "FAC mobility assessment integration"
+    }
+  },
+  "required": [
+    "guideline_version",
+    "section_type"
+  ]
+}

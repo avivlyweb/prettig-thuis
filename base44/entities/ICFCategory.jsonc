@@ -1,0 +1,31 @@
+{
+  "name": "ICFCategory",
+  "type": "object",
+  "properties": {
+    "icf_code": {
+      "type": "string",
+      "description": "The ICF classification code (e.g., d410, b144)"
+    },
+    "display_name": {
+      "type": "string",
+      "description": "The display category name (e.g., Physical function, Self care)"
+    },
+    "question": {
+      "type": "string",
+      "description": "Example question or description for this category"
+    },
+    "info_text": {
+      "type": "string",
+      "description": "Additional information or clarification text"
+    },
+    "category": {
+      "type": "string",
+      "description": "The category identifier"
+    }
+  },
+  "required": [
+    "icf_code",
+    "display_name",
+    "category"
+  ]
+}

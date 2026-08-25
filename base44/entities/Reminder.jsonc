@@ -1,0 +1,32 @@
+{
+  "name": "Reminder",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "User who owns the reminder"
+    },
+    "text": {
+      "type": "string",
+      "description": "Reminder text"
+    },
+    "time_of_day": {
+      "type": "string",
+      "description": "When to show reminder"
+    },
+    "voice_url": {
+      "type": "string",
+      "description": "URL to voice recording"
+    },
+    "active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether reminder is active"
+    }
+  },
+  "required": [
+    "user_id",
+    "text",
+    "time_of_day"
+  ]
+}

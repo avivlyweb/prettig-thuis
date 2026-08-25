@@ -1,0 +1,53 @@
+{
+  "name": "AlbumItem",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "User who owns the album item"
+    },
+    "title": {
+      "type": "string",
+      "description": "Photo or video title"
+    },
+    "caption": {
+      "type": "string",
+      "description": "Media caption"
+    },
+    "media_type": {
+      "type": "string",
+      "enum": [
+        "image",
+        "video"
+      ],
+      "default": "image",
+      "description": "The type of media"
+    },
+    "image_url": {
+      "type": "string",
+      "description": "URL to the thumbnail image (always required)"
+    },
+    "video_url": {
+      "type": "string",
+      "description": "URL to the video file (if media_type is video)"
+    },
+    "voice_url": {
+      "type": "string",
+      "description": "URL to caregiver-recorded voice note"
+    },
+    "reminiscence_prompt": {
+      "type": "string",
+      "description": "A question or prompt to encourage discussion"
+    },
+    "reminiscence_voice_url": {
+      "type": "string",
+      "description": "URL to AI-generated voice for the prompt"
+    }
+  },
+  "required": [
+    "user_id",
+    "title",
+    "caption",
+    "image_url"
+  ]
+}

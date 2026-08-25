@@ -1,0 +1,88 @@
+{
+  "name": "ICFTrainingExample",
+  "type": "object",
+  "properties": {
+    "dialogue_id": {
+      "type": "number",
+      "description": "Unique dialogue identifier"
+    },
+    "sentence": {
+      "type": "string",
+      "description": "The Dutch sentence from the conversation"
+    },
+    "annotations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "icf_domain": {
+            "type": "string"
+          },
+          "icf_code": {
+            "type": "string"
+          },
+          "domain_label": {
+            "type": "string"
+          },
+          "level_label": {
+            "type": "string"
+          },
+          "level_value": {
+            "type": "number"
+          },
+          "context": {
+            "type": "string"
+          },
+          "domain_phrase": {
+            "type": "string"
+          },
+          "level_phrase": {
+            "type": "string"
+          },
+          "confidence": {
+            "type": "number"
+          },
+          "validated_by": {
+            "type": "string"
+          },
+          "review_center": {
+            "type": "string"
+          },
+          "review_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "confidence_adjustment": {
+            "type": "string"
+          },
+          "adjustments": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "Array of ICF code annotations for this sentence"
+    },
+    "clinician_type": {
+      "type": "string",
+      "description": "Type of clinician who validated this (e.g., Maatschappelijk werker, Palliatief specialist)"
+    },
+    "source": {
+      "type": "string",
+      "description": "Source of the training example (e.g., EBP-enhanced synthetic)"
+    },
+    "icf_codes_extracted": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Quick lookup array of all ICF codes mentioned in this example"
+    }
+  },
+  "required": [
+    "dialogue_id",
+    "sentence",
+    "annotations",
+    "clinician_type",
+    "source"
+  ]
+}

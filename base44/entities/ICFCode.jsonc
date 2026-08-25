@@ -1,0 +1,38 @@
+{
+  "name": "ICFCode",
+  "type": "object",
+  "properties": {
+    "icf_code": {
+      "type": "string",
+      "description": "The unique WHO ICF classification code (e.g., d410, b144)"
+    },
+    "scale_code": {
+      "type": "string",
+      "description": "Identifier for the specific assessment scale used (e.g., micf_adults_scale_difficulty1)"
+    },
+    "broad_category_en": {
+      "type": "string",
+      "description": "Broad category of the ICF code in English (e.g., Physical function)"
+    },
+    "display_name_en": {
+      "type": "string",
+      "description": "Human-readable name of the ICF component in English (e.g., Changing body position)"
+    },
+    "info_text_en": {
+      "type": "string",
+      "description": "Additional descriptive information or examples in English"
+    },
+    "question_en": {
+      "type": "string",
+      "description": "Example question to assess this ICF component in English"
+    },
+    "answering_scale_en": {
+      "type": "string",
+      "description": "Description of the answering scale for the associated question in English"
+    }
+  },
+  "required": [
+    "icf_code",
+    "display_name_en"
+  ]
+}

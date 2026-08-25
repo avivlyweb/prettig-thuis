@@ -1,0 +1,91 @@
+{
+  "name": "KNGFGuideline",
+  "type": "object",
+  "properties": {
+    "guideline_version": {
+      "type": "string",
+      "description": "Version of the KNGF guideline (e.g., 2025.10)"
+    },
+    "guideline_description": {
+      "type": "string",
+      "description": "Description of the guideline"
+    },
+    "created_date": {
+      "type": "string",
+      "format": "date",
+      "description": "When the guideline was created"
+    },
+    "source": {
+      "type": "string",
+      "description": "Source of the guideline"
+    },
+    "based_on": {
+      "type": "string",
+      "description": "What the guideline is based on"
+    },
+    "section_type": {
+      "type": "string",
+      "enum": [
+        "metadata",
+        "risk_factors",
+        "assessment_tools",
+        "intervention_strategies",
+        "icf_integration",
+        "fac_specific_guidance"
+      ],
+      "description": "Type of guideline section"
+    },
+    "section_data": {
+      "type": "object",
+      "description": "The actual data for this section (flexible JSON object)"
+    },
+    "risk_factors_intrinsic": {
+      "type": "object",
+      "description": "Intrinsic risk factors (age-related, medical, medication)"
+    },
+    "risk_factors_extrinsic": {
+      "type": "object",
+      "description": "Extrinsic risk factors (environmental, behavioral)"
+    },
+    "clinical_tests": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      },
+      "description": "Clinical assessment tools and tests"
+    },
+    "exercise_programs": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      },
+      "description": "Evidence-based exercise programs"
+    },
+    "environmental_modifications": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Recommended environmental changes"
+    },
+    "education_and_behavior": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Education and behavioral interventions"
+    },
+    "icf_integration_data": {
+      "type": "object",
+      "description": "ICF code specific guidance and interventions"
+    },
+    "fac_guidance": {
+      "type": "object",
+      "description": "FAC level specific guidance"
+    }
+  },
+  "required": [
+    "guideline_version",
+    "section_type"
+  ]
+}

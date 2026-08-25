@@ -1,0 +1,119 @@
+{
+  "name": "User",
+  "type": "object",
+  "properties": {
+    "display_name": {
+      "type": "string",
+      "description": "Preferred display name"
+    },
+    "dementia_stage": {
+      "type": "string",
+      "enum": [
+        "mild",
+        "moderate",
+        "severe"
+      ],
+      "default": "mild",
+      "description": "Assessed stage of dementia"
+    },
+    "icf_profile": {
+      "type": "object",
+      "description": "ICF assessment results",
+      "properties": {
+        "b144_memory_functions": {
+          "type": "string",
+          "enum": [
+            "independent",
+            "light_support",
+            "needs_support",
+            "monitor"
+          ]
+        },
+        "d230_daily_routine": {
+          "type": "string",
+          "enum": [
+            "independent",
+            "light_support",
+            "needs_support",
+            "monitor"
+          ]
+        },
+        "d450_walking": {
+          "type": "string",
+          "enum": [
+            "independent",
+            "light_support",
+            "needs_support",
+            "monitor"
+          ]
+        },
+        "d5_self_care": {
+          "type": "string",
+          "enum": [
+            "independent",
+            "light_support",
+            "needs_support",
+            "monitor"
+          ]
+        },
+        "d3_communication": {
+          "type": "string",
+          "enum": [
+            "independent",
+            "light_support",
+            "needs_support",
+            "monitor"
+          ]
+        },
+        "d7_interpersonal": {
+          "type": "string",
+          "enum": [
+            "independent",
+            "light_support",
+            "needs_support",
+            "monitor"
+          ]
+        },
+        "d9_community_leisure": {
+          "type": "string",
+          "enum": [
+            "independent",
+            "light_support",
+            "needs_support",
+            "monitor"
+          ]
+        }
+      }
+    },
+    "preferences": {
+      "type": "object",
+      "description": "User preferences",
+      "properties": {
+        "speech_speed": {
+          "type": "string",
+          "enum": [
+            "slow",
+            "normal",
+            "fast"
+          ],
+          "default": "normal"
+        },
+        "auto_speak": {
+          "type": "boolean",
+          "default": true
+        }
+      }
+    },
+    "caregiver_mode": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether user has caregiver access"
+    }
+  },
+  "required": [
+    "display_name",
+    "icf_profile",
+    "preferences",
+    "dementia_stage"
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "name": "AlbumPlays",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "User who viewed the item"
+    },
+    "album_item_id": {
+      "type": "string",
+      "description": "The ID of the viewed AlbumItem"
+    },
+    "started_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp when the user started viewing the item"
+    },
+    "duration_s": {
+      "type": "number",
+      "description": "How long the item was viewed, in seconds"
+    }
+  },
+  "required": [
+    "user_id",
+    "album_item_id",
+    "started_at",
+    "duration_s"
+  ]
+}
